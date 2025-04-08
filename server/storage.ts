@@ -2,8 +2,18 @@ import { users, songs, playlists, playlistSongs } from "@shared/schema";
 import type { User, InsertUser, Song, Playlist, PlaylistSong } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { scrypt, randomBytes } from "crypto";
+import { promisify } from "util";
 
 const MemoryStore = createMemoryStore(session);
+
+const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
 
 // Interface for storage operations
 export interface IStorage {
@@ -32,7 +42,7 @@ export interface IStorage {
   removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean>;
 
   // Session store
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Express session store
 }
 
 export class MemStorage implements IStorage {
@@ -40,7 +50,7 @@ export class MemStorage implements IStorage {
   private songs: Map<number, Song>;
   private playlists: Map<number, Playlist>;
   private playlistSongs: Map<number, PlaylistSong>;
-  sessionStore: session.SessionStore;
+  sessionStore: any; // Express session store
   
   private userIdCounter: number;
   private songIdCounter: number;
@@ -61,6 +71,20 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
     });
+    
+    // Create a default admin user
+    this.createUser({
+      username: "admin",
+      password: "admin123",
+      isAdmin: true
+    });
+    
+    // Create a default regular user
+    this.createUser({
+      username: "user",
+      password: "user123",
+      isAdmin: false
+    });
   }
 
   // User methods
@@ -77,8 +101,13 @@ export class MemStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
     const now = new Date();
+    
+    // Hash the password before storing
+    const hashedPassword = await hashPassword(insertUser.password);
+    
     const user: User = { 
       ...insertUser, 
+      password: hashedPassword,
       id, 
       displayName: insertUser.username,
       isAdmin: insertUser.isAdmin || false,
