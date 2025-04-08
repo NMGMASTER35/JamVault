@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertSongRequestSchema, type SongRequest } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 import {
   Card,
@@ -83,6 +84,7 @@ export default function SongRequestPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   const [selectedRequest, setSelectedRequest] = useState<SongRequest | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isAdminResponseDialogOpen, setIsAdminResponseDialogOpen] = useState(false);
@@ -229,7 +231,17 @@ export default function SongRequestPage() {
   
   return (
     <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-8 gradient-text">Song Requests</h1>
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/')}
+          className="mr-4"
+          size="sm"
+        >
+          Back
+        </Button>
+        <h1 className="text-3xl font-bold gradient-text">Song Requests</h1>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">

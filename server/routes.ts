@@ -387,8 +387,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update other profile fields
       const updates: any = {};
       if (validatedData.displayName) updates.displayName = validatedData.displayName;
+      if (validatedData.firstName) updates.firstName = validatedData.firstName;
+      if (validatedData.lastName) updates.lastName = validatedData.lastName;
       if (validatedData.bio) updates.bio = validatedData.bio;
       if (validatedData.email) updates.email = validatedData.email;
+      if (validatedData.profileImage) updates.profileImage = validatedData.profileImage;
+      if (validatedData.dateOfBirth) updates.dateOfBirth = validatedData.dateOfBirth;
+      if (validatedData.favoriteArtists) updates.favoriteArtists = validatedData.favoriteArtists;
+      if (validatedData.favoriteSongs) updates.favoriteSongs = validatedData.favoriteSongs;
       
       if (Object.keys(updates).length > 0) {
         await storage.updateUser(user.id, updates);

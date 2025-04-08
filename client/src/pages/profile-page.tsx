@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { updateProfileSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 import {
   Card,
@@ -35,7 +36,12 @@ import {
   Mail, 
   AtSign, 
   FileText, 
-  Loader2 
+  Loader2,
+  Calendar,
+  UserPlus,
+  ArrowLeft,
+  Music,
+  Mic
 } from "lucide-react";
 
 type FormValues = z.infer<typeof updateProfileSchema>;
@@ -45,13 +51,20 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"info" | "password">("info");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       displayName: user?.displayName || "",
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
       bio: user?.bio || "",
       email: user?.email || "",
+      profileImage: user?.profileImage || "",
+      dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth) : undefined,
+      favoriteArtists: user?.favoriteArtists || [],
+      favoriteSongs: user?.favoriteSongs || [],
     },
   });
   
@@ -118,23 +131,45 @@ export default function ProfilePage() {
   
   return (
     <div className="container max-w-3xl py-8">
-      <h1 className="text-3xl font-bold mb-6 gradient-text">Your Profile</h1>
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          className="mr-4 p-2"
+          onClick={() => navigate("/")}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-3xl font-bold gradient-text">Your Profile</h1>
+      </div>
       
-      <div className="mb-6 flex flex-col sm:flex-row gap-6 items-start">
-        <div className="flex-shrink-0">
-          <div className="w-24 h-24 bg-neutral-800 rounded-lg flex items-center justify-center text-primary">
-            <UserIcon className="w-12 h-12" />
+      <div className="mb-6 flex flex-col items-center text-center">
+        <div className="flex-shrink-0 mb-4">
+          <div className="w-32 h-32 bg-neutral-800 rounded-lg flex items-center justify-center text-primary overflow-hidden">
+            {user?.profileImage ? (
+              <img 
+                src={user.profileImage} 
+                alt={user.displayName || user.username} 
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <UserIcon className="w-16 h-16" />
+            )}
           </div>
         </div>
         <div>
           <h2 className="text-2xl font-bold">{user?.displayName || user?.username}</h2>
+          {(user?.firstName || user?.lastName) && (
+            <p className="text-neutral-300">
+              {[user?.firstName, user?.lastName].filter(Boolean).join(" ")}
+            </p>
+          )}
           <p className="text-neutral-400">
             {user?.isAdmin ? "Administrator" : "Member"} · Joined {
               user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "..."
             }
           </p>
           {user?.bio && (
-            <p className="mt-2 text-neutral-200">{user.bio}</p>
+            <p className="mt-2 text-neutral-200 max-w-md mx-auto">{user.bio}</p>
           )}
         </div>
       </div>
@@ -156,6 +191,50 @@ export default function ProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                              <UserPlus className="h-4 w-4 text-neutral-400" />
+                              <Input 
+                                placeholder="Your first name" 
+                                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                {...field} 
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                              <UserPlus className="h-4 w-4 text-neutral-400" />
+                              <Input 
+                                placeholder="Your last name" 
+                                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                {...field} 
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
                   <FormField
                     control={form.control}
                     name="displayName"
@@ -196,6 +275,83 @@ export default function ProfilePage() {
                         </FormControl>
                         <FormDescription>
                           This is used for password recovery and notifications
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="dateOfBirth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date of Birth</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                            <Calendar className="h-4 w-4 text-neutral-400" />
+                            <Input 
+                              type="date" 
+                              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                              value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                              onChange={(e) => {
+                                const date = e.target.value ? new Date(e.target.value) : undefined;
+                                field.onChange(date);
+                              }}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="profileImage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Profile Image URL</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                            <UserIcon className="h-4 w-4 text-neutral-400" />
+                            <Input 
+                              placeholder="https://example.com/your-image.jpg" 
+                              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                              {...field} 
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Enter a URL to your profile image
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="favoriteArtists"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Favorite Artists</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                            <Mic className="h-4 w-4 text-neutral-400" />
+                            <Input 
+                              placeholder="Artist1, Artist2, Artist3" 
+                              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                              value={field.value?.join(', ') || ''}
+                              onChange={(e) => {
+                                const artists = e.target.value.split(',').map(a => a.trim()).filter(Boolean);
+                                field.onChange(artists);
+                              }}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Enter your favorite artists, separated by commas
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { 
   BarChart, 
@@ -22,6 +23,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { 
   Clock, 
   BarChart3, 
@@ -32,7 +34,6 @@ import {
   Share2, 
   UserCircle
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 // Define types for user listening stats
 interface TopSong {
@@ -90,7 +91,8 @@ const COLORS = ['#FF6B8B', '#4BC0C0', '#9966FF', '#FFCE56', '#36A2EB'];
 export default function StatsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [personalityType, setPersonalityType] = useState<string>(""); 
+  const [personalityType, setPersonalityType] = useState<string>("");
+  const [, navigate] = useLocation(); 
 
   // Fetch user listening stats
   const { data: stats, isLoading } = useQuery<UserListeningStats>({
@@ -135,6 +137,16 @@ export default function StatsPage() {
 
   return (
     <div className="container py-10 max-w-6xl mx-auto px-4 md:px-6">
+      <div className="flex items-center mb-2">
+        <Button 
+          variant="outline" 
+          onClick={() => navigate('/')}
+          className="mr-4"
+          size="sm"
+        >
+          Back
+        </Button>
+      </div>
       <h1 className="text-4xl font-bold mb-2">Your Listening Stats</h1>
       <p className="text-muted-foreground mb-8">
         Explore your personal music journey based on your listening habits
