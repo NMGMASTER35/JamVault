@@ -15,6 +15,7 @@ export interface IStorage {
   // Song operations
   getSong(id: number): Promise<Song | undefined>;
   getSongsByUser(userId: number): Promise<Song[]>;
+  getAllSongs(): Promise<Song[]>;
   createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song>;
   deleteSong(id: number): Promise<boolean>;
   
@@ -80,6 +81,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id, 
       displayName: insertUser.username,
+      isAdmin: insertUser.isAdmin || false,
       createdAt: now 
     };
     this.users.set(id, user);
@@ -95,6 +97,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.songs.values()).filter(
       (song) => song.userId === userId,
     );
+  }
+
+  async getAllSongs(): Promise<Song[]> {
+    return Array.from(this.songs.values());
   }
 
   async createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song> {

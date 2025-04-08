@@ -24,7 +24,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
-    const songs = await storage.getSongsByUser(req.user.id);
+    // If admin, return own songs, otherwise return all songs
+    const songs = req.user.isAdmin 
+      ? await storage.getSongsByUser(req.user.id)
+      : await storage.getAllSongs();
     return res.json(songs);
   });
   
@@ -34,15 +37,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
     
-    if (song.userId !== req.user.id) {
-      return res.status(403).send("Forbidden");
-    }
-    
     return res.json(song);
   });
   
   app.post("/api/songs", upload.single("file"), async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can upload songs");
     if (!req.file) return res.status(400).send("No file uploaded");
     
     const { title, artist, album, duration, cover } = req.body;
@@ -62,13 +62,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.delete("/api/songs/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can delete songs");
     
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
-    
-    if (song.userId !== req.user.id) {
-      return res.status(403).send("Forbidden");
-    }
     
     // Delete the file
     try {
@@ -93,10 +90,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
-    
-    if (song.userId !== req.user.id) {
-      return res.status(403).send("Forbidden");
-    }
     
     if (!fs.existsSync(song.filePath)) {
       return res.status(404).send("File not found");
@@ -232,13 +225,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         songId: req.body.songId,
       });
       
-      // Validate song exists and belongs to user
+      // Validate song exists
       const song = await storage.getSong(validatedData.songId);
       if (!song) return res.status(404).send("Song not found");
-      
-      if (song.userId !== req.user.id) {
-        return res.status(403).send("Forbidden");
-      }
       
       const playlistSong = await storage.addSongToPlaylist(validatedData.playlistId, validatedData.songId);
       return res.status(201).json(playlistSong);
