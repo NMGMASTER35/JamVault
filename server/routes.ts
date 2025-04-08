@@ -257,6 +257,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Favorites routes
+  app.get("/api/favorites", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const songs = await storage.getFavoritesByUser(req.user.id);
+    res.json(songs);
+  });
+  
+  app.post("/api/favorites/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const songId = parseInt(req.params.songId);
+    
+    // Check if the song exists
+    const song = await storage.getSong(songId);
+    if (!song) {
+      return res.status(404).send("Song not found");
+    }
+    
+    const favorite = await storage.addToFavorites(req.user.id, songId);
+    res.status(201).json(favorite);
+  });
+  
+  app.delete("/api/favorites/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const songId = parseInt(req.params.songId);
+    
+    const result = await storage.removeFromFavorites(req.user.id, songId);
+    if (result) {
+      res.status(204).send();
+    } else {
+      res.status(404).send("Song not found in favorites");
+    }
+  });
+  
+  app.get("/api/favorites/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const songId = parseInt(req.params.songId);
+    
+    const isFavorite = await storage.isFavorite(req.user.id, songId);
+    res.json({ isFavorite });
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
   return httpServer;

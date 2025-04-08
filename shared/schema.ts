@@ -39,6 +39,13 @@ export const playlistSongs = pgTable("playlist_songs", {
   addedAt: timestamp("added_at").defaultNow(),
 });
 
+export const favorites = pgTable("favorites", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  songId: integer("song_id").notNull(),
+  addedAt: timestamp("added_at").defaultNow(),
+});
+
 // Insert Schemas and Types
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -60,11 +67,17 @@ export const insertPlaylistSongSchema = createInsertSchema(playlistSongs).omit({
   addedAt: true,
 });
 
+export const insertFavoriteSchema = createInsertSchema(favorites).omit({
+  id: true,
+  addedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Song = typeof songs.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;
 export type PlaylistSong = typeof playlistSongs.$inferSelect;
+export type Favorite = typeof favorites.$inferSelect;
 
 // Extended Schemas for Forms
 export const loginSchema = insertUserSchema.pick({

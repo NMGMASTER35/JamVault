@@ -1,5 +1,5 @@
-import { users, songs, playlists, playlistSongs } from "@shared/schema";
-import type { User, InsertUser, Song, Playlist, PlaylistSong } from "@shared/schema";
+import { users, songs, playlists, playlistSongs, favorites } from "@shared/schema";
+import type { User, InsertUser, Song, Playlist, PlaylistSong, Favorite } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes } from "crypto";
@@ -21,6 +21,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<Omit<User, "id" | "isAdmin" | "createdAt">>): Promise<User | undefined>;
   
   // Song operations
   getSong(id: number): Promise<Song | undefined>;
@@ -40,6 +41,12 @@ export interface IStorage {
   getPlaylistSongs(playlistId: number): Promise<Song[]>;
   addSongToPlaylist(playlistId: number, songId: number): Promise<PlaylistSong>;
   removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean>;
+  
+  // Favorites operations
+  getFavoritesByUser(userId: number): Promise<Song[]>;
+  addToFavorites(userId: number, songId: number): Promise<Favorite>;
+  removeFromFavorites(userId: number, songId: number): Promise<boolean>;
+  isFavorite(userId: number, songId: number): Promise<boolean>;
 
   // Session store
   sessionStore: any; // Express session store
@@ -50,23 +57,27 @@ export class MemStorage implements IStorage {
   private songs: Map<number, Song>;
   private playlists: Map<number, Playlist>;
   private playlistSongs: Map<number, PlaylistSong>;
+  private favorites: Map<number, Favorite>;
   sessionStore: any; // Express session store
   
   private userIdCounter: number;
   private songIdCounter: number;
   private playlistIdCounter: number;
   private playlistSongIdCounter: number;
+  private favoriteIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.songs = new Map();
     this.playlists = new Map();
     this.playlistSongs = new Map();
+    this.favorites = new Map();
     
     this.userIdCounter = 1;
     this.songIdCounter = 1;
     this.playlistIdCounter = 1;
     this.playlistSongIdCounter = 1;
+    this.favoriteIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
@@ -227,6 +238,65 @@ export class MemStorage implements IStorage {
     
     if (!playlistSong) return false;
     return this.playlistSongs.delete(playlistSong.id);
+  }
+
+  // User update
+  async updateUser(
+    id: number, 
+    updates: Partial<Omit<User, "id" | "isAdmin" | "createdAt">>
+  ): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser: User = { ...user, ...updates };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  // Favorites methods
+  async getFavoritesByUser(userId: number): Promise<Song[]> {
+    const favoriteRecords = Array.from(this.favorites.values()).filter(
+      (fav) => fav.userId === userId,
+    );
+    
+    const songIds = favoriteRecords.map(fav => fav.songId);
+    return Array.from(this.songs.values()).filter(song => songIds.includes(song.id));
+  }
+
+  async addToFavorites(userId: number, songId: number): Promise<Favorite> {
+    // Check if already in favorites
+    const existing = Array.from(this.favorites.values()).find(
+      fav => fav.userId === userId && fav.songId === songId
+    );
+    
+    if (existing) return existing;
+    
+    const id = this.favoriteIdCounter++;
+    const now = new Date();
+    const favorite: Favorite = {
+      id,
+      userId,
+      songId,
+      addedAt: now,
+    };
+    
+    this.favorites.set(id, favorite);
+    return favorite;
+  }
+
+  async removeFromFavorites(userId: number, songId: number): Promise<boolean> {
+    const favorite = Array.from(this.favorites.values()).find(
+      fav => fav.userId === userId && fav.songId === songId
+    );
+    
+    if (!favorite) return false;
+    return this.favorites.delete(favorite.id);
+  }
+
+  async isFavorite(userId: number, songId: number): Promise<boolean> {
+    return Array.from(this.favorites.values()).some(
+      fav => fav.userId === userId && fav.songId === songId
+    );
   }
 }
 

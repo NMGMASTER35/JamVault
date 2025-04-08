@@ -2,10 +2,10 @@ import { Song } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { formatDistance } from "date-fns";
 import { 
-  Heart, 
   MoreHorizontal, 
   Play 
 } from "lucide-react";
+import { FavoriteButton } from "./favorite-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -139,13 +139,9 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
               </td>
               <td className="text-right pr-4">
                 <div className="flex items-center justify-end gap-4">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                  >
-                    <Heart className="h-4 w-4" />
-                  </Button>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    <FavoriteButton songId={song.id} />
+                  </div>
                   <span className="text-muted-foreground">{formatDuration(song.duration)}</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

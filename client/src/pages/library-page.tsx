@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PlaylistForm } from "@/components/music/playlist-form";
 
 export default function LibraryPage() {
-  const [activeTab, setActiveTab] = useState<"songs" | "playlists">("songs");
+  const [activeTab, setActiveTab] = useState<"songs" | "playlists" | "favorites">("songs");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   // Fetch user's songs
@@ -35,12 +35,21 @@ export default function LibraryPage() {
   } = useQuery<Playlist[]>({
     queryKey: ['/api/playlists'],
   });
+  
+  // Fetch user's favorite songs
+  const {
+    data: favorites,
+    isLoading: isLoadingFavorites,
+    error: favoritesError
+  } = useQuery<Song[]>({
+    queryKey: ['/api/favorites'],
+  });
 
   const { playSong, playPlaylist } = useAudio();
 
   // Loading state
-  const isLoading = isLoadingSongs || isLoadingPlaylists;
-  const hasError = songsError || playlistsError;
+  const isLoading = isLoadingSongs || isLoadingPlaylists || isLoadingFavorites;
+  const hasError = songsError || playlistsError || favoritesError;
   
   return (
     <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
@@ -78,12 +87,13 @@ export default function LibraryPage() {
             <Tabs 
               defaultValue="songs" 
               value={activeTab} 
-              onValueChange={(v) => setActiveTab(v as "songs" | "playlists")}
+              onValueChange={(v) => setActiveTab(v as "songs" | "playlists" | "favorites")}
               className="w-full"
             >
               <TabsList className="mb-6">
                 <TabsTrigger value="songs">Songs</TabsTrigger>
                 <TabsTrigger value="playlists">Playlists</TabsTrigger>
+                <TabsTrigger value="favorites">Favorites</TabsTrigger>
               </TabsList>
               
               <TabsContent value="songs">
@@ -147,6 +157,29 @@ export default function LibraryPage() {
                     <Button onClick={() => setIsCreateDialogOpen(true)}>
                       Create Playlist
                     </Button>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="favorites">
+                {isLoadingFavorites ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : favoritesError ? (
+                  <div className="p-4 text-center text-destructive">
+                    Error loading favorites. Please try again.
+                  </div>
+                ) : favorites && favorites.length > 0 ? (
+                  <SongList 
+                    songs={favorites} 
+                    onPlay={playSong}
+                    isLibraryView={true}
+                  />
+                ) : (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <p className="mb-4">No favorite songs yet.</p>
+                    <p>Add songs to your favorites by clicking the heart icon.</p>
                   </div>
                 )}
               </TabsContent>
