@@ -36,6 +36,18 @@ export const artists = pgTable("artists", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const albums = pgTable("albums", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  artistId: integer("artist_id").notNull(),
+  cover: text("cover"),
+  releaseYear: integer("release_year"),
+  genre: text("genre"),
+  description: text("description"),
+  trackCount: integer("track_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -150,6 +162,12 @@ export const insertArtistSchema = createInsertSchema(artists).omit({
   createdAt: true,
 });
 
+export const insertAlbumSchema = createInsertSchema(albums).omit({
+  id: true,
+  createdAt: true,
+  trackCount: true,
+});
+
 export const insertSongSchema = createInsertSchema(songs).omit({
   id: true,
   uploadedAt: true,
@@ -207,6 +225,8 @@ export const insertLibraryEntrySchema = createInsertSchema(libraryEntries).omit(
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Artist = typeof artists.$inferSelect;
+export type Album = typeof albums.$inferSelect;
+export type InsertAlbum = z.infer<typeof insertAlbumSchema>;
 export type Song = typeof songs.$inferSelect;
 export type Playlist = typeof playlists.$inferSelect;
 export type PlaylistSong = typeof playlistSongs.$inferSelect;

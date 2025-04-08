@@ -15,7 +15,8 @@ import {
   resetPasswordSchema,
   updateProfileSchema,
   passwordSchema,
-  insertShortLinkSchema
+  insertShortLinkSchema,
+  insertAlbumSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -393,6 +394,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error checking library status:", error);
       return res.status(500).send("Error checking library status");
+    }
+  });
+
+  // Album routes
+  app.get("/api/albums", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const albums = await storage.getAllAlbums();
+      return res.json(albums);
+    } catch (error) {
+      console.error("Error fetching albums:", error);
+      return res.status(500).send("Error fetching albums");
+    }
+  });
+  
+  app.get("/api/albums/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const albumId = parseInt(req.params.id);
+      const album = await storage.getAlbum(albumId);
+      
+      if (!album) {
+        return res.status(404).send("Album not found");
+      }
+      
+      return res.json(album);
+    } catch (error) {
+      console.error("Error fetching album:", error);
+      return res.status(500).send("Error fetching album");
+    }
+  });
+  
+  app.get("/api/albums/:id/songs", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const albumId = parseInt(req.params.id);
+      const songs = await storage.getSongsByAlbum(albumId);
+      return res.json(songs);
+    } catch (error) {
+      console.error("Error fetching album songs:", error);
+      return res.status(500).send("Error fetching album songs");
+    }
+  });
+  
+  app.get("/api/artists/:id/albums", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const artistId = parseInt(req.params.id);
+      const albums = await storage.getAlbumsByArtist(artistId);
+      return res.json(albums);
+    } catch (error) {
+      console.error("Error fetching artist albums:", error);
+      return res.status(500).send("Error fetching artist albums");
+    }
+  });
+  
+  app.post("/api/albums", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can create albums");
+    
+    try {
+      const validatedData = insertAlbumSchema.parse(req.body);
+      const album = await storage.createAlbum(validatedData);
+      return res.status(201).json(album);
+    } catch (error) {
+      console.error("Error creating album:", error);
+      return res.status(400).json({ error: "Invalid album data" });
+    }
+  });
+  
+  app.patch("/api/albums/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can update albums");
+    
+    try {
+      const albumId = parseInt(req.params.id);
+      const album = await storage.getAlbum(albumId);
+      
+      if (!album) {
+        return res.status(404).send("Album not found");
+      }
+      
+      const updatedAlbum = await storage.updateAlbum(albumId, req.body);
+      return res.json(updatedAlbum);
+    } catch (error) {
+      console.error("Error updating album:", error);
+      return res.status(500).send("Error updating album");
+    }
+  });
+  
+  app.delete("/api/albums/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can delete albums");
+    
+    try {
+      const albumId = parseInt(req.params.id);
+      const album = await storage.getAlbum(albumId);
+      
+      if (!album) {
+        return res.status(404).send("Album not found");
+      }
+      
+      const success = await storage.deleteAlbum(albumId);
+      
+      if (success) {
+        return res.status(204).send();
+      } else {
+        return res.status(500).send("Failed to delete album");
+      }
+    } catch (error) {
+      console.error("Error deleting album:", error);
+      return res.status(500).send("Error deleting album");
     }
   });
 

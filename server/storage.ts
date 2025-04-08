@@ -1,8 +1,8 @@
-import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games, shortLinks, songRequests, libraryEntries } from "@shared/schema";
+import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games, shortLinks, songRequests, libraryEntries, albums } from "@shared/schema";
 import type { 
   User, InsertUser, Song, Playlist, PlaylistSong, Favorite, 
   SongComment, UserListeningHistory, Artist, Game, SongRequest, InsertSongRequest,
-  ShortLink, InsertShortLink, LibraryEntry
+  ShortLink, InsertShortLink, LibraryEntry, Album, InsertAlbum
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -40,6 +40,16 @@ export interface IStorage {
   getAllArtists(): Promise<Artist[]>;
   createArtist(artist: Omit<Artist, "id" | "createdAt">): Promise<Artist>;
   updateArtist(id: number, updates: Partial<Omit<Artist, "id" | "createdAt">>): Promise<Artist | undefined>;
+  
+  // Album operations
+  getAlbum(id: number): Promise<Album | undefined>;
+  getAlbumsByArtist(artistId: number): Promise<Album[]>;
+  getAlbumByTitle(title: string, artistId?: number): Promise<Album | undefined>;
+  getAllAlbums(): Promise<Album[]>;
+  createAlbum(album: Omit<Album, "id" | "createdAt">): Promise<Album>;
+  updateAlbum(id: number, updates: Partial<Omit<Album, "id" | "createdAt">>): Promise<Album | undefined>;
+  deleteAlbum(id: number): Promise<boolean>;
+  getSongsByAlbum(albumId: number): Promise<Song[]>;
   
   // Song operations
   getSong(id: number): Promise<Song | undefined>;
@@ -130,6 +140,7 @@ export class MemStorage implements IStorage {
   private playlistSongs: Map<number, PlaylistSong>;
   private favorites: Map<number, Favorite>;
   private artists: Map<number, Artist>;
+  private albums: Map<number, Album>;
   private songComments: Map<number, SongComment>;
   private userListeningHistory: Map<number, UserListeningHistory>;
   private games: Map<number, Game>;
@@ -144,6 +155,7 @@ export class MemStorage implements IStorage {
   private playlistSongIdCounter: number;
   private favoriteIdCounter: number;
   private artistIdCounter: number;
+  private albumIdCounter: number;
   private songCommentIdCounter: number;
   private listeningHistoryIdCounter: number;
   private gameIdCounter: number;
@@ -158,6 +170,7 @@ export class MemStorage implements IStorage {
     this.playlistSongs = new Map();
     this.favorites = new Map();
     this.artists = new Map();
+    this.albums = new Map();
     this.songComments = new Map();
     this.userListeningHistory = new Map();
     this.games = new Map();
@@ -171,6 +184,7 @@ export class MemStorage implements IStorage {
     this.playlistSongIdCounter = 1;
     this.favoriteIdCounter = 1;
     this.artistIdCounter = 1;
+    this.albumIdCounter = 1;
     this.songCommentIdCounter = 1;
     this.listeningHistoryIdCounter = 1;
     this.gameIdCounter = 1;
@@ -296,6 +310,76 @@ export class MemStorage implements IStorage {
     const updatedArtist: Artist = { ...artist, ...updates };
     this.artists.set(id, updatedArtist);
     return updatedArtist;
+  }
+
+  // Album methods
+  async getAlbum(id: number): Promise<Album | undefined> {
+    return this.albums.get(id);
+  }
+  
+  async getAlbumsByArtist(artistId: number): Promise<Album[]> {
+    return Array.from(this.albums.values()).filter(
+      album => album.artistId === artistId
+    );
+  }
+  
+  async getAlbumByTitle(title: string, artistId?: number): Promise<Album | undefined> {
+    if (artistId) {
+      return Array.from(this.albums.values()).find(
+        album => album.title.toLowerCase() === title.toLowerCase() && album.artistId === artistId
+      );
+    }
+    
+    return Array.from(this.albums.values()).find(
+      album => album.title.toLowerCase() === title.toLowerCase()
+    );
+  }
+  
+  async getAllAlbums(): Promise<Album[]> {
+    return Array.from(this.albums.values());
+  }
+  
+  async createAlbum(album: Omit<Album, "id" | "createdAt">): Promise<Album> {
+    const id = this.albumIdCounter++;
+    const now = new Date();
+    const newAlbum: Album = { 
+      ...album, 
+      id, 
+      createdAt: now,
+      cover: album.cover || null,
+      description: album.description || null,
+      genre: album.genre || null,
+      releaseYear: album.releaseYear || null,
+      trackCount: album.trackCount || 0
+    };
+    this.albums.set(id, newAlbum);
+    return newAlbum;
+  }
+  
+  async updateAlbum(
+    id: number,
+    updates: Partial<Omit<Album, "id" | "createdAt">>
+  ): Promise<Album | undefined> {
+    const album = this.albums.get(id);
+    if (!album) return undefined;
+    
+    const updatedAlbum: Album = { ...album, ...updates };
+    this.albums.set(id, updatedAlbum);
+    return updatedAlbum;
+  }
+  
+  async deleteAlbum(id: number): Promise<boolean> {
+    return this.albums.delete(id);
+  }
+  
+  async getSongsByAlbum(albumId: number): Promise<Song[]> {
+    const album = await this.getAlbum(albumId);
+    if (!album) return [];
+    
+    return Array.from(this.songs.values()).filter(
+      song => song.album?.toLowerCase() === album.title.toLowerCase() && 
+              (!song.artistId || song.artistId === album.artistId)
+    );
   }
 
   // Song methods
