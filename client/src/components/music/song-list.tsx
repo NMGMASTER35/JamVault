@@ -4,7 +4,10 @@ import { formatDistance } from "date-fns";
 import { 
   MoreHorizontal, 
   Play,
-  Share2
+  Share2,
+  Plus,
+  Check,
+  Library
 } from "lucide-react";
 import { FavoriteButton } from "./favorite-button";
 import { ShareDialog } from "./share-dialog";
@@ -19,7 +22,9 @@ import {
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useLibrary } from "@/hooks/use-library";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SongListProps {
   songs: Song[];
@@ -30,6 +35,21 @@ interface SongListProps {
 
 export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: SongListProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { 
+    librarySongs, 
+    addToLibraryMutation, 
+    removeFromLibraryMutation 
+  } = useLibrary();
+  
+  // Create a lookup object for quick status checks
+  const libraryStatus = useMemo(() => {
+    const statusMap: Record<number, boolean> = {};
+    librarySongs.forEach(song => {
+      statusMap[song.id] = true;
+    });
+    return statusMap;
+  }, [librarySongs]);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [showAddToPlaylistDialog, setShowAddToPlaylistDialog] = useState(false);
   
@@ -129,7 +149,12 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                     >
                       {song.title}
                     </div>
-                    <div className="text-sm text-muted-foreground">{song.artist}</div>
+                    <div className="flex items-center gap-1">
+                      <div className="text-sm text-muted-foreground">{song.artist}</div>
+                      {user && libraryStatus[song.id] && (
+                        <Library className="h-3 w-3 text-primary ml-1" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </td>
@@ -175,6 +200,24 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                       <DropdownMenuItem>
                         Download
                       </DropdownMenuItem>
+
+                      {user && !isLibraryView && (
+                        libraryStatus[song.id] ? (
+                          <DropdownMenuItem
+                            onClick={() => removeFromLibraryMutation.mutate(song.id)}
+                          >
+                            <Check className="h-4 w-4 mr-2 text-primary" />
+                            In Your Library
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => addToLibraryMutation.mutate(song.id)}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add to Library
+                          </DropdownMenuItem>
+                        )
+                      )}
 
                       <DropdownMenuItem asChild>
                         <div className="flex items-center justify-between px-2 py-1.5 text-sm">

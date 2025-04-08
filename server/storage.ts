@@ -1,8 +1,8 @@
-import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games, shortLinks, songRequests } from "@shared/schema";
+import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games, shortLinks, songRequests, libraryEntries } from "@shared/schema";
 import type { 
   User, InsertUser, Song, Playlist, PlaylistSong, Favorite, 
   SongComment, UserListeningHistory, Artist, Game, SongRequest, InsertSongRequest,
-  ShortLink, InsertShortLink
+  ShortLink, InsertShortLink, LibraryEntry
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -53,6 +53,12 @@ export interface IStorage {
   incrementPlayCount(id: number): Promise<Song | undefined>;
   updateSongLyrics(id: number, lyrics: string): Promise<Song | undefined>;
   deleteSong(id: number): Promise<boolean>;
+  
+  // User library operations - (personal library distinct from global song catalog)
+  getUserLibrary(userId: number): Promise<Song[]>;
+  addToLibrary(userId: number, songId: number): Promise<LibraryEntry>;
+  removeFromLibrary(userId: number, songId: number): Promise<boolean>;
+  isInLibrary(userId: number, songId: number): Promise<boolean>;
   
   // Playlist operations
   getPlaylist(id: number): Promise<Playlist | undefined>;
@@ -129,6 +135,7 @@ export class MemStorage implements IStorage {
   private games: Map<number, Game>;
   private songRequests: Map<number, SongRequest>;
   private shortLinks: Map<number, ShortLink>;
+  private libraryEntries: Map<number, LibraryEntry>;
   sessionStore: any; // Express session store
   
   private userIdCounter: number;
@@ -142,6 +149,7 @@ export class MemStorage implements IStorage {
   private gameIdCounter: number;
   private songRequestIdCounter: number;
   private shortLinkIdCounter: number;
+  private libraryEntryIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -155,6 +163,7 @@ export class MemStorage implements IStorage {
     this.games = new Map();
     this.songRequests = new Map();
     this.shortLinks = new Map();
+    this.libraryEntries = new Map();
     
     this.userIdCounter = 1;
     this.songIdCounter = 1;
@@ -167,6 +176,7 @@ export class MemStorage implements IStorage {
     this.gameIdCounter = 1;
     this.songRequestIdCounter = 1;
     this.shortLinkIdCounter = 1;
+    this.libraryEntryIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
@@ -525,6 +535,52 @@ export class MemStorage implements IStorage {
     
     if (!playlistSong) return false;
     return this.playlistSongs.delete(playlistSong.id);
+  }
+  
+  // User Library methods
+  async getUserLibrary(userId: number): Promise<Song[]> {
+    const libraryRecords = Array.from(this.libraryEntries.values()).filter(
+      (entry) => entry.userId === userId,
+    );
+    
+    const songIds = libraryRecords.map(entry => entry.songId);
+    return Array.from(this.songs.values()).filter(song => songIds.includes(song.id));
+  }
+
+  async addToLibrary(userId: number, songId: number): Promise<LibraryEntry> {
+    // Check if already in library
+    const existing = Array.from(this.libraryEntries.values()).find(
+      entry => entry.userId === userId && entry.songId === songId
+    );
+    
+    if (existing) return existing;
+    
+    const id = this.libraryEntryIdCounter++;
+    const now = new Date();
+    const libraryEntry: LibraryEntry = {
+      id,
+      userId,
+      songId,
+      addedAt: now,
+    };
+    
+    this.libraryEntries.set(id, libraryEntry);
+    return libraryEntry;
+  }
+
+  async removeFromLibrary(userId: number, songId: number): Promise<boolean> {
+    const libraryEntry = Array.from(this.libraryEntries.values()).find(
+      entry => entry.userId === userId && entry.songId === songId
+    );
+    
+    if (!libraryEntry) return false;
+    return this.libraryEntries.delete(libraryEntry.id);
+  }
+
+  async isInLibrary(userId: number, songId: number): Promise<boolean> {
+    return Array.from(this.libraryEntries.values()).some(
+      entry => entry.userId === userId && entry.songId === songId
+    );
   }
   
   // Song Comments methods

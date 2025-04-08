@@ -13,19 +13,20 @@ import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { PlaylistForm } from "@/components/music/playlist-form";
+import { useLibrary } from "@/hooks/use-library";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<"songs" | "playlists" | "favorites">("songs");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { user } = useAuth();
   
-  // Fetch user's songs
+  // Fetch user's library songs
   const { 
-    data: songs, 
-    isLoading: isLoadingSongs,
-    error: songsError
-  } = useQuery<Song[]>({
-    queryKey: ['/api/songs'],
-  });
+    librarySongs, 
+    isLoadingLibrary,
+    libraryError
+  } = useLibrary();
 
   // Fetch user's playlists
   const { 
@@ -48,8 +49,8 @@ export default function LibraryPage() {
   const { playSong, playPlaylist } = useAudio();
 
   // Loading state
-  const isLoading = isLoadingSongs || isLoadingPlaylists || isLoadingFavorites;
-  const hasError = songsError || playlistsError || favoritesError;
+  const isLoading = isLoadingLibrary || isLoadingPlaylists || isLoadingFavorites;
+  const hasError = libraryError || playlistsError || favoritesError;
   
   return (
     <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
@@ -97,25 +98,26 @@ export default function LibraryPage() {
               </TabsList>
               
               <TabsContent value="songs">
-                {isLoadingSongs ? (
+                {isLoadingLibrary ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                ) : songsError ? (
+                ) : libraryError ? (
                   <div className="p-4 text-center text-destructive">
-                    Error loading songs. Please try again.
+                    Error loading library songs. Please try again.
                   </div>
-                ) : songs && songs.length > 0 ? (
+                ) : librarySongs && librarySongs.length > 0 ? (
                   <SongList 
-                    songs={songs} 
+                    songs={librarySongs} 
                     onPlay={playSong}
                     isLibraryView={true}
                   />
                 ) : (
                   <div className="text-center py-16 text-muted-foreground">
                     <p className="mb-4">No songs in your library yet.</p>
+                    <p className="mb-4">Add songs to your library by clicking the + button on any song.</p>
                     <Button asChild>
-                      <a href="/upload">Upload Music</a>
+                      <a href="/">Browse Songs</a>
                     </Button>
                   </div>
                 )}

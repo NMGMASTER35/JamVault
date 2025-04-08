@@ -329,6 +329,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching recent songs");
     }
   });
+  
+  // User's personal library (just songs they've added to their library)
+  app.get("/api/library", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const songs = await storage.getUserLibrary(req.user.id);
+      return res.json(songs);
+    } catch (error) {
+      console.error("Error fetching user library:", error);
+      return res.status(500).send("Error fetching user library");
+    }
+  });
+  
+  // Add a song to user's library
+  app.post("/api/library/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const songId = parseInt(req.params.songId);
+      const song = await storage.getSong(songId);
+      
+      if (!song) {
+        return res.status(404).send("Song not found");
+      }
+      
+      const libraryEntry = await storage.addToLibrary(req.user.id, songId);
+      return res.status(201).json(libraryEntry);
+    } catch (error) {
+      console.error("Error adding to library:", error);
+      return res.status(500).send("Error adding to library");
+    }
+  });
+  
+  // Remove a song from user's library
+  app.delete("/api/library/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const songId = parseInt(req.params.songId);
+      const success = await storage.removeFromLibrary(req.user.id, songId);
+      
+      if (success) {
+        return res.status(204).send();
+      } else {
+        return res.status(404).send("Song not found in library");
+      }
+    } catch (error) {
+      console.error("Error removing from library:", error);
+      return res.status(500).send("Error removing from library");
+    }
+  });
+  
+  // Check if a song is in user's library
+  app.get("/api/library/:songId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const songId = parseInt(req.params.songId);
+      const isInLibrary = await storage.isInLibrary(req.user.id, songId);
+      return res.json({ isInLibrary });
+    } catch (error) {
+      console.error("Error checking library status:", error);
+      return res.status(500).send("Error checking library status");
+    }
+  });
 
   // User profile routes
   app.get("/api/profile", async (req: Request, res: Response) => {
