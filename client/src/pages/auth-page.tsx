@@ -142,7 +142,7 @@ export default function AuthPage() {
                 <CardHeader>
                   <CardTitle>Create an account</CardTitle>
                   <CardDescription>
-                    Sign up to start using SoundStream
+                    Sign up to start using JamVault
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -232,12 +232,16 @@ export default function AuthPage() {
         <div className="max-w-md text-white">
           <div className="flex items-center mb-8">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-              <Music2 className="h-6 w-6 text-primary" />
+              <img 
+                src="/attached_assets/jamvault-logo.png" 
+                alt="JamVault Logo" 
+                className="h-8 w-8 object-contain" 
+              />
             </div>
-            <h1 className="text-2xl font-bold ml-3">SoundStream</h1>
+            <h1 className="text-2xl font-bold ml-3">JamVault</h1>
           </div>
           
-          <h2 className="text-3xl font-bold mb-4">Your Music, Anywhere</h2>
+          <h2 className="text-3xl font-bold mb-4">Your Personal Vault of Vibes</h2>
           <p className="text-lg mb-6">
             Upload, organize, and enjoy your music collection in one place.
             Create playlists, shuffle your favorites, and take control of your

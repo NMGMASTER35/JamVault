@@ -6,18 +6,31 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   ChevronLeft,
   ChevronRight,
   Menu,
   Search,
   Upload,
   User,
+  LogOut,
+  UserCircle,
+  Settings,
+  MessageSquare,
 } from "lucide-react";
 
 export function TopBar() {
   const [location, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,11 +109,52 @@ export function TopBar() {
         </Button>
       )}
       
-      {/* User menu (mobile only) */}
-      <div className="md:hidden">
-        <Button variant="ghost" size="icon" className="rounded-full">
-          <User className="h-5 w-5" />
-        </Button>
+      {/* User menu */}
+      <div className="ml-auto">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full h-9 w-9 bg-neutral-800 hover:bg-neutral-700"
+            >
+              <UserCircle className="h-5 w-5 text-primary" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel>
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{user?.displayName || user?.username}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <UserCircle className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/song-request")}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                <span>Song Requests</span>
+              </DropdownMenuItem>
+              {user?.isAdmin && (
+                <DropdownMenuItem onClick={() => navigate("/upload")}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  <span>Upload Music</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="text-red-500 focus:bg-red-500/10 focus:text-red-500"
+              onClick={() => logoutMutation.mutate()}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
