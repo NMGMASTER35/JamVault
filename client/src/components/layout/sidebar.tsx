@@ -36,11 +36,13 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-card border-r border-border">
       {/* App Logo */}
-      <div className="flex items-center gap-2 p-4">
-        <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-          <Music2 className="h-5 w-5 text-primary-foreground" />
-        </div>
-        <h1 className="text-xl font-semibold">SoundStream</h1>
+      <div className="flex items-center gap-3 p-4">
+        <img 
+          src="/attached_assets/jamvault-logo.png" 
+          alt="JamVault Logo" 
+          className="h-10 w-10 object-contain" 
+        />
+        <h1 className="text-xl font-semibold">JamVault</h1>
       </div>
       
       {/* Navigation */}
@@ -89,16 +91,18 @@ export function Sidebar() {
             <PlaylistForm onSuccess={() => setIsCreatePlaylistOpen(false)} />
           </DialogContent>
         </Dialog>
-        <Link href="/upload">
-          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-            location === "/upload" 
-              ? "bg-primary text-primary-foreground font-medium" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          }`}>
-            <Upload className="h-5 w-5" />
-            <span>Upload Music</span>
-          </a>
-        </Link>
+        {user?.isAdmin && (
+          <Link href="/upload">
+            <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+              location === "/upload" 
+                ? "bg-primary text-primary-foreground font-medium" 
+                : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+            }`}>
+              <Upload className="h-5 w-5" />
+              <span>Upload Music</span>
+            </a>
+          </Link>
+        )}
       </div>
       
       {/* Playlists */}

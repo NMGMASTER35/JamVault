@@ -1,8 +1,10 @@
 import { Link, useLocation } from "wouter";
 import { Home, Search, Library, Upload } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function MobileNav() {
   const [location] = useLocation();
+  const { user } = useAuth();
   
   return (
     <div className="md:hidden fixed bottom-[72px] left-0 right-0 bg-card border-t border-border z-10">
@@ -31,14 +33,16 @@ export function MobileNav() {
             <span className="text-xs mt-1">Library</span>
           </a>
         </Link>
-        <Link href="/upload">
-          <a className={`flex flex-col items-center py-3 px-4 ${
-            location === "/upload" ? "text-primary" : "text-muted-foreground"
-          }`}>
-            <Upload className="h-5 w-5" />
-            <span className="text-xs mt-1">Upload</span>
-          </a>
-        </Link>
+        {user?.isAdmin && (
+          <Link href="/upload">
+            <a className={`flex flex-col items-center py-3 px-4 ${
+              location === "/upload" ? "text-primary" : "text-muted-foreground"
+            }`}>
+              <Upload className="h-5 w-5" />
+              <span className="text-xs mt-1">Upload</span>
+            </a>
+          </Link>
+        )}
       </div>
     </div>
   );

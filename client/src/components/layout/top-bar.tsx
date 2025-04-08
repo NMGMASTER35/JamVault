@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 import {
   ChevronLeft,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
 export function TopBar() {
   const [location, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const { user } = useAuth();
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +39,16 @@ export function TopBar() {
           <Sidebar />
         </SheetContent>
       </Sheet>
+      
+      {/* App Logo for mobile */}
+      <div className="md:hidden flex items-center gap-2">
+        <img 
+          src="/attached_assets/jamvault-logo.png" 
+          alt="JamVault Logo" 
+          className="h-8 w-8 object-contain" 
+        />
+        <h1 className="text-lg font-semibold">JamVault</h1>
+      </div>
       
       {/* Navigation buttons */}
       <div className="hidden sm:flex gap-2">
@@ -73,14 +85,16 @@ export function TopBar() {
         />
       </form>
       
-      {/* Upload button */}
-      <Button 
-        className="hidden sm:flex items-center gap-2"
-        onClick={() => navigate("/upload")}
-      >
-        <Upload className="h-4 w-4" />
-        <span>Upload</span>
-      </Button>
+      {/* Upload button - admin only */}
+      {user?.isAdmin && (
+        <Button 
+          className="hidden sm:flex items-center gap-2"
+          onClick={() => navigate("/upload")}
+        >
+          <Upload className="h-4 w-4" />
+          <span>Upload</span>
+        </Button>
+      )}
       
       {/* User menu (mobile only) */}
       <div className="md:hidden">
