@@ -7,7 +7,7 @@ export function MobileNav() {
   const { user } = useAuth();
   
   return (
-    <div className="md:hidden fixed bottom-[72px] left-0 right-0 bg-card border-t border-border z-10">
+    <div className="md:hidden fixed bottom-[72px] left-0 right-0 bg-black border-t border-neutral-800 z-10">
       <div className="flex justify-around">
         <Link href="/">
           <a className={`flex flex-col items-center py-3 px-4 ${

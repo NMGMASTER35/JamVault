@@ -1,5 +1,8 @@
-import { users, songs, playlists, playlistSongs, favorites } from "@shared/schema";
-import type { User, InsertUser, Song, Playlist, PlaylistSong, Favorite } from "@shared/schema";
+import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games } from "@shared/schema";
+import type { 
+  User, InsertUser, Song, Playlist, PlaylistSong, Favorite, 
+  SongComment, UserListeningHistory, Artist, Game
+} from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes } from "crypto";
@@ -22,24 +25,42 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<Omit<User, "id" | "isAdmin" | "createdAt">>): Promise<User | undefined>;
+  getUserStats(userId: number): Promise<any>;
+  updateUserStats(userId: number, stats: any): Promise<any>;
+  
+  // Artist operations
+  getArtist(id: number): Promise<Artist | undefined>;
+  getArtistByName(name: string): Promise<Artist | undefined>;
+  getAllArtists(): Promise<Artist[]>;
+  createArtist(artist: Omit<Artist, "id" | "createdAt">): Promise<Artist>;
+  updateArtist(id: number, updates: Partial<Omit<Artist, "id" | "createdAt">>): Promise<Artist | undefined>;
   
   // Song operations
   getSong(id: number): Promise<Song | undefined>;
   getSongsByUser(userId: number): Promise<Song[]>;
+  getSongsByArtist(artistId: number): Promise<Song[]>;
+  getSongsByGenre(genre: string): Promise<Song[]>;
   getAllSongs(): Promise<Song[]>;
   createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song>;
+  updateSong(id: number, updates: Partial<Omit<Song, "id" | "userId" | "uploadedAt">>): Promise<Song | undefined>;
+  incrementPlayCount(id: number): Promise<Song | undefined>;
+  updateSongLyrics(id: number, lyrics: string): Promise<Song | undefined>;
   deleteSong(id: number): Promise<boolean>;
   
   // Playlist operations
   getPlaylist(id: number): Promise<Playlist | undefined>;
   getPlaylistsByUser(userId: number): Promise<Playlist[]>;
+  getCollaborativePlaylists(): Promise<Playlist[]>;
+  getCollaborativePlaylistsByUser(userId: number): Promise<Playlist[]>;
   createPlaylist(playlist: Omit<Playlist, "id" | "createdAt">): Promise<Playlist>;
   updatePlaylist(id: number, playlist: Partial<Omit<Playlist, "id" | "userId" | "createdAt">>): Promise<Playlist | undefined>;
+  addCollaborator(playlistId: number, userId: number): Promise<Playlist | undefined>;
+  removeCollaborator(playlistId: number, userId: number): Promise<Playlist | undefined>;
   deletePlaylist(id: number): Promise<boolean>;
   
   // Playlist song operations
   getPlaylistSongs(playlistId: number): Promise<Song[]>;
-  addSongToPlaylist(playlistId: number, songId: number): Promise<PlaylistSong>;
+  addSongToPlaylist(playlistId: number, songId: number, addedBy: number): Promise<PlaylistSong>;
   removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean>;
   
   // Favorites operations
@@ -47,6 +68,28 @@ export interface IStorage {
   addToFavorites(userId: number, songId: number): Promise<Favorite>;
   removeFromFavorites(userId: number, songId: number): Promise<boolean>;
   isFavorite(userId: number, songId: number): Promise<boolean>;
+  
+  // Song Comments operations
+  getSongComments(songId: number): Promise<SongComment[]>;
+  addSongComment(comment: Omit<SongComment, "id" | "createdAt">): Promise<SongComment>;
+  deleteSongComment(id: number): Promise<boolean>;
+  
+  // User Listening History operations
+  recordListeningHistory(history: Omit<UserListeningHistory, "id" | "listenDate">): Promise<UserListeningHistory>;
+  getUserListeningHistory(userId: number): Promise<UserListeningHistory[]>;
+  getUserListeningStats(userId: number): Promise<{
+    totalTime: number;
+    topSongs: { songId: number; title: string; playCount: number }[];
+    topArtists: { artist: string; playCount: number }[];
+    topGenres: { genre: string; playCount: number }[];
+  }>;
+  
+  // Games operations
+  getAllGames(): Promise<Game[]>;
+  getGame(id: number): Promise<Game | undefined>;
+  createGame(game: Omit<Game, "id" | "createdAt">): Promise<Game>;
+  updateGame(id: number, updates: Partial<Omit<Game, "id" | "createdAt">>): Promise<Game | undefined>;
+  deleteGame(id: number): Promise<boolean>;
 
   // Session store
   sessionStore: any; // Express session store
@@ -58,6 +101,10 @@ export class MemStorage implements IStorage {
   private playlists: Map<number, Playlist>;
   private playlistSongs: Map<number, PlaylistSong>;
   private favorites: Map<number, Favorite>;
+  private artists: Map<number, Artist>;
+  private songComments: Map<number, SongComment>;
+  private userListeningHistory: Map<number, UserListeningHistory>;
+  private games: Map<number, Game>;
   sessionStore: any; // Express session store
   
   private userIdCounter: number;
@@ -65,6 +112,10 @@ export class MemStorage implements IStorage {
   private playlistIdCounter: number;
   private playlistSongIdCounter: number;
   private favoriteIdCounter: number;
+  private artistIdCounter: number;
+  private songCommentIdCounter: number;
+  private listeningHistoryIdCounter: number;
+  private gameIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -72,12 +123,20 @@ export class MemStorage implements IStorage {
     this.playlists = new Map();
     this.playlistSongs = new Map();
     this.favorites = new Map();
+    this.artists = new Map();
+    this.songComments = new Map();
+    this.userListeningHistory = new Map();
+    this.games = new Map();
     
     this.userIdCounter = 1;
     this.songIdCounter = 1;
     this.playlistIdCounter = 1;
     this.playlistSongIdCounter = 1;
     this.favoriteIdCounter = 1;
+    this.artistIdCounter = 1;
+    this.songCommentIdCounter = 1;
+    this.listeningHistoryIdCounter = 1;
+    this.gameIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
@@ -87,14 +146,22 @@ export class MemStorage implements IStorage {
     this.createUser({
       username: "admin",
       password: "admin123",
-      isAdmin: true
+      isAdmin: true,
+      profileImage: null,
+      bio: null,
+      displayName: "Administrator",
+      stats: null
     });
     
     // Create a default regular user
     this.createUser({
       username: "user",
       password: "user123",
-      isAdmin: false
+      isAdmin: false,
+      profileImage: null,
+      bio: null,
+      displayName: "Regular User",
+      stats: null
     });
   }
 
@@ -120,12 +187,75 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       password: hashedPassword,
       id, 
-      displayName: insertUser.username,
+      displayName: insertUser.displayName || insertUser.username,
       isAdmin: insertUser.isAdmin || false,
-      createdAt: now 
+      createdAt: now,
+      stats: insertUser.stats || {
+        totalListenTime: 0,
+        topGenres: [],
+        topArtists: [],
+        personality: "New Listener"
+      }
     };
     this.users.set(id, user);
     return user;
+  }
+  
+  async getUserStats(userId: number): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) return null;
+    return user.stats;
+  }
+  
+  async updateUserStats(userId: number, stats: any): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) return null;
+    
+    const updatedUser = { 
+      ...user, 
+      stats: {
+        ...user.stats,
+        ...stats
+      }
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser.stats;
+  }
+  
+  // Artist methods
+  async getArtist(id: number): Promise<Artist | undefined> {
+    return this.artists.get(id);
+  }
+  
+  async getArtistByName(name: string): Promise<Artist | undefined> {
+    return Array.from(this.artists.values()).find(
+      artist => artist.name.toLowerCase() === name.toLowerCase()
+    );
+  }
+  
+  async getAllArtists(): Promise<Artist[]> {
+    return Array.from(this.artists.values());
+  }
+  
+  async createArtist(artist: Omit<Artist, "id" | "createdAt">): Promise<Artist> {
+    const id = this.artistIdCounter++;
+    const now = new Date();
+    const newArtist: Artist = { ...artist, id, createdAt: now };
+    this.artists.set(id, newArtist);
+    return newArtist;
+  }
+  
+  async updateArtist(
+    id: number,
+    updates: Partial<Omit<Artist, "id" | "createdAt">>
+  ): Promise<Artist | undefined> {
+    const artist = this.artists.get(id);
+    if (!artist) return undefined;
+    
+    const updatedArtist: Artist = { ...artist, ...updates };
+    this.artists.set(id, updatedArtist);
+    return updatedArtist;
   }
 
   // Song methods
@@ -138,6 +268,18 @@ export class MemStorage implements IStorage {
       (song) => song.userId === userId,
     );
   }
+  
+  async getSongsByArtist(artistId: number): Promise<Song[]> {
+    return Array.from(this.songs.values()).filter(
+      (song) => song.artistId === artistId,
+    );
+  }
+  
+  async getSongsByGenre(genre: string): Promise<Song[]> {
+    return Array.from(this.songs.values()).filter(
+      (song) => song.genre?.toLowerCase() === genre.toLowerCase(),
+    );
+  }
 
   async getAllSongs(): Promise<Song[]> {
     return Array.from(this.songs.values());
@@ -146,9 +288,51 @@ export class MemStorage implements IStorage {
   async createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song> {
     const id = this.songIdCounter++;
     const now = new Date();
-    const newSong: Song = { ...song, id, uploadedAt: now };
+    const newSong: Song = { 
+      ...song, 
+      id, 
+      uploadedAt: now,
+      playCount: song.playCount || 0,
+      artistId: song.artistId || null,
+      genre: song.genre || null,
+      year: song.year || null,
+      lyrics: song.lyrics || null
+    };
     this.songs.set(id, newSong);
     return newSong;
+  }
+  
+  async updateSong(
+    id: number,
+    updates: Partial<Omit<Song, "id" | "userId" | "uploadedAt">>
+  ): Promise<Song | undefined> {
+    const song = this.songs.get(id);
+    if (!song) return undefined;
+    
+    const updatedSong: Song = { ...song, ...updates };
+    this.songs.set(id, updatedSong);
+    return updatedSong;
+  }
+  
+  async incrementPlayCount(id: number): Promise<Song | undefined> {
+    const song = this.songs.get(id);
+    if (!song) return undefined;
+    
+    const updatedSong: Song = { 
+      ...song, 
+      playCount: (song.playCount || 0) + 1 
+    };
+    this.songs.set(id, updatedSong);
+    return updatedSong;
+  }
+  
+  async updateSongLyrics(id: number, lyrics: string): Promise<Song | undefined> {
+    const song = this.songs.get(id);
+    if (!song) return undefined;
+    
+    const updatedSong: Song = { ...song, lyrics };
+    this.songs.set(id, updatedSong);
+    return updatedSong;
   }
 
   async deleteSong(id: number): Promise<boolean> {
@@ -156,6 +340,16 @@ export class MemStorage implements IStorage {
     Array.from(this.playlistSongs.values())
       .filter(ps => ps.songId === id)
       .forEach(ps => this.playlistSongs.delete(ps.id));
+    
+    // Remove from favorites
+    Array.from(this.favorites.values())
+      .filter(fav => fav.songId === id)
+      .forEach(fav => this.favorites.delete(fav.id));
+    
+    // Remove comments
+    Array.from(this.songComments.values())
+      .filter(comment => comment.songId === id)
+      .forEach(comment => this.songComments.delete(comment.id));
     
     return this.songs.delete(id);
   }
@@ -167,14 +361,35 @@ export class MemStorage implements IStorage {
 
   async getPlaylistsByUser(userId: number): Promise<Playlist[]> {
     return Array.from(this.playlists.values()).filter(
-      (playlist) => playlist.userId === userId,
+      (playlist) => playlist.userId === userId || 
+                    playlist.collaborators?.includes(userId),
+    );
+  }
+  
+  async getCollaborativePlaylists(): Promise<Playlist[]> {
+    return Array.from(this.playlists.values()).filter(
+      (playlist) => playlist.isCollaborative === true,
+    );
+  }
+  
+  async getCollaborativePlaylistsByUser(userId: number): Promise<Playlist[]> {
+    return Array.from(this.playlists.values()).filter(
+      (playlist) => playlist.isCollaborative === true && 
+                    (playlist.userId === userId || 
+                     playlist.collaborators?.includes(userId)),
     );
   }
 
   async createPlaylist(playlist: Omit<Playlist, "id" | "createdAt">): Promise<Playlist> {
     const id = this.playlistIdCounter++;
     const now = new Date();
-    const newPlaylist: Playlist = { ...playlist, id, createdAt: now };
+    const newPlaylist: Playlist = { 
+      ...playlist, 
+      id, 
+      createdAt: now,
+      isCollaborative: playlist.isCollaborative || false,
+      collaborators: playlist.collaborators || []
+    };
     this.playlists.set(id, newPlaylist);
     return newPlaylist;
   }
@@ -188,6 +403,47 @@ export class MemStorage implements IStorage {
     
     const updatedPlaylist: Playlist = { ...playlist, ...updates };
     this.playlists.set(id, updatedPlaylist);
+    return updatedPlaylist;
+  }
+  
+  async addCollaborator(playlistId: number, userId: number): Promise<Playlist | undefined> {
+    const playlist = this.playlists.get(playlistId);
+    if (!playlist) return undefined;
+    
+    const currentCollaborators = playlist.collaborators || [];
+    
+    // Check if user is already a collaborator
+    if (currentCollaborators.includes(userId)) {
+      return playlist;
+    }
+    
+    const updatedPlaylist: Playlist = {
+      ...playlist,
+      isCollaborative: true,
+      collaborators: [...currentCollaborators, userId]
+    };
+    
+    this.playlists.set(playlistId, updatedPlaylist);
+    return updatedPlaylist;
+  }
+  
+  async removeCollaborator(playlistId: number, userId: number): Promise<Playlist | undefined> {
+    const playlist = this.playlists.get(playlistId);
+    if (!playlist) return undefined;
+    
+    const currentCollaborators = playlist.collaborators || [];
+    
+    // Check if user is a collaborator
+    if (!currentCollaborators.includes(userId)) {
+      return playlist;
+    }
+    
+    const updatedPlaylist: Playlist = {
+      ...playlist,
+      collaborators: currentCollaborators.filter(id => id !== userId)
+    };
+    
+    this.playlists.set(playlistId, updatedPlaylist);
     return updatedPlaylist;
   }
 
@@ -210,7 +466,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.songs.values()).filter(song => songIds.includes(song.id));
   }
 
-  async addSongToPlaylist(playlistId: number, songId: number): Promise<PlaylistSong> {
+  async addSongToPlaylist(playlistId: number, songId: number, addedBy: number): Promise<PlaylistSong> {
     // Check if already in playlist
     const existing = Array.from(this.playlistSongs.values()).find(
       ps => ps.playlistId === playlistId && ps.songId === songId
@@ -224,6 +480,7 @@ export class MemStorage implements IStorage {
       id,
       playlistId,
       songId,
+      addedBy,
       addedAt: now,
     };
     
@@ -238,6 +495,123 @@ export class MemStorage implements IStorage {
     
     if (!playlistSong) return false;
     return this.playlistSongs.delete(playlistSong.id);
+  }
+  
+  // Song Comments methods
+  async getSongComments(songId: number): Promise<SongComment[]> {
+    return Array.from(this.songComments.values())
+      .filter(comment => comment.songId === songId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+  
+  async addSongComment(comment: Omit<SongComment, "id" | "createdAt">): Promise<SongComment> {
+    const id = this.songCommentIdCounter++;
+    const now = new Date();
+    const newComment: SongComment = { ...comment, id, createdAt: now };
+    this.songComments.set(id, newComment);
+    return newComment;
+  }
+  
+  async deleteSongComment(id: number): Promise<boolean> {
+    return this.songComments.delete(id);
+  }
+  
+  // User Listening History methods
+  async recordListeningHistory(history: Omit<UserListeningHistory, "id" | "listenDate">): Promise<UserListeningHistory> {
+    const id = this.listeningHistoryIdCounter++;
+    const now = new Date();
+    const newHistory: UserListeningHistory = { ...history, id, listenDate: now };
+    this.userListeningHistory.set(id, newHistory);
+    
+    // Also increment the song's play count
+    this.incrementPlayCount(history.songId);
+    
+    return newHistory;
+  }
+  
+  async getUserListeningHistory(userId: number): Promise<UserListeningHistory[]> {
+    return Array.from(this.userListeningHistory.values())
+      .filter(history => history.userId === userId)
+      .sort((a, b) => b.listenDate.getTime() - a.listenDate.getTime()); // Most recent first
+  }
+  
+  async getUserListeningStats(userId: number): Promise<{
+    totalTime: number;
+    topSongs: { songId: number; title: string; playCount: number }[];
+    topArtists: { artist: string; playCount: number }[];
+    topGenres: { genre: string; playCount: number }[];
+  }> {
+    const history = await this.getUserListeningHistory(userId);
+    
+    // Calculate total listening time
+    const totalTime = history.reduce((sum, entry) => sum + (entry.duration || 0), 0);
+    
+    // Count song plays
+    const songCounts = new Map<number, number>();
+    history.forEach(entry => {
+      const current = songCounts.get(entry.songId) || 0;
+      songCounts.set(entry.songId, current + 1);
+    });
+    
+    // Get top songs
+    const songEntries = Array.from(songCounts.entries());
+    songEntries.sort((a, b) => b[1] - a[1]); // Sort by play count, descending
+    
+    const topSongs = await Promise.all(
+      songEntries.slice(0, 10).map(async ([songId, playCount]) => {
+        const song = await this.getSong(songId);
+        return {
+          songId,
+          title: song?.title || "Unknown",
+          playCount
+        };
+      })
+    );
+    
+    // Count artist plays
+    const artistCounts = new Map<string, number>();
+    for (const entry of history) {
+      const song = await this.getSong(entry.songId);
+      if (song?.artist) {
+        const current = artistCounts.get(song.artist) || 0;
+        artistCounts.set(song.artist, current + 1);
+      }
+    }
+    
+    // Get top artists
+    const artistEntries = Array.from(artistCounts.entries());
+    artistEntries.sort((a, b) => b[1] - a[1]); // Sort by play count, descending
+    
+    const topArtists = artistEntries.slice(0, 5).map(([artist, playCount]) => ({
+      artist,
+      playCount
+    }));
+    
+    // Count genre plays
+    const genreCounts = new Map<string, number>();
+    for (const entry of history) {
+      const song = await this.getSong(entry.songId);
+      if (song?.genre) {
+        const current = genreCounts.get(song.genre) || 0;
+        genreCounts.set(song.genre, current + 1);
+      }
+    }
+    
+    // Get top genres
+    const genreEntries = Array.from(genreCounts.entries());
+    genreEntries.sort((a, b) => b[1] - a[1]); // Sort by play count, descending
+    
+    const topGenres = genreEntries.slice(0, 5).map(([genre, playCount]) => ({
+      genre,
+      playCount
+    }));
+    
+    return {
+      totalTime,
+      topSongs,
+      topArtists,
+      topGenres
+    };
   }
 
   // User update
@@ -297,6 +671,39 @@ export class MemStorage implements IStorage {
     return Array.from(this.favorites.values()).some(
       fav => fav.userId === userId && fav.songId === songId
     );
+  }
+  
+  // Games methods
+  async getAllGames(): Promise<Game[]> {
+    return Array.from(this.games.values());
+  }
+  
+  async getGame(id: number): Promise<Game | undefined> {
+    return this.games.get(id);
+  }
+  
+  async createGame(game: Omit<Game, "id" | "createdAt">): Promise<Game> {
+    const id = this.gameIdCounter++;
+    const now = new Date();
+    const newGame: Game = { ...game, id, createdAt: now };
+    this.games.set(id, newGame);
+    return newGame;
+  }
+  
+  async updateGame(
+    id: number,
+    updates: Partial<Omit<Game, "id" | "createdAt">>
+  ): Promise<Game | undefined> {
+    const game = this.games.get(id);
+    if (!game) return undefined;
+    
+    const updatedGame: Game = { ...game, ...updates };
+    this.games.set(id, updatedGame);
+    return updatedGame;
+  }
+  
+  async deleteGame(id: number): Promise<boolean> {
+    return this.games.delete(id);
   }
 }
 

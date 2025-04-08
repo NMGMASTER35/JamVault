@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,16 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, UploadCloud, X, Music, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, UploadCloud, X, Music, CheckCircle, AlertCircle, Image, ImagePlus } from "lucide-react";
 import { useLocation } from "wouter";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 // Define validation schema
 const uploadFormSchema = z.object({
   title: z.string().min(1, "Song title is required"),
   artist: z.string().min(1, "Artist name is required"),
   album: z.string().optional(),
+  genre: z.string().optional(),
+  year: z.coerce.number().optional(),
   duration: z.coerce.number().min(1, "Duration is required"),
   cover: z.string().optional(),
+  lyrics: z.string().optional(),
 });
 
 type UploadFormValues = z.infer<typeof uploadFormSchema>;
@@ -33,11 +38,18 @@ interface FileUploadState {
   error?: string;
 }
 
+interface CoverUploadState {
+  file: File;
+  preview: string;
+}
+
 export function UploadForm() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [fileUpload, setFileUpload] = useState<FileUploadState | null>(null);
+  const [coverUpload, setCoverUpload] = useState<CoverUploadState | null>(null);
   
   // Initialize form
   const form = useForm<UploadFormValues>({
@@ -68,6 +80,18 @@ export function UploadForm() {
       
       if (values.cover) {
         formData.append('cover', values.cover);
+      }
+      
+      if (values.genre) {
+        formData.append('genre', values.genre);
+      }
+      
+      if (values.year) {
+        formData.append('year', values.year.toString());
+      }
+      
+      if (values.lyrics) {
+        formData.append('lyrics', values.lyrics);
       }
       
       // Simulate upload progress
@@ -237,7 +261,72 @@ export function UploadForm() {
     form.setValue('artist', '');
     form.setValue('album', '');
     form.setValue('duration', 0);
+    form.setValue('genre', '');
+    form.setValue('year', undefined);
+    form.setValue('lyrics', '');
   };
+  
+  // Handle cover image selection
+  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check if it's an image file
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file (JPEG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Maximum cover image size is 2MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create a preview URL
+    const preview = URL.createObjectURL(file);
+    
+    // Set cover upload state
+    setCoverUpload({ file, preview });
+    
+    // Convert the image to base64 for submission
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      form.setValue('cover', base64);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // Clear cover image
+  const clearCoverImage = () => {
+    if (coverInputRef.current) {
+      coverInputRef.current.value = '';
+    }
+    if (coverUpload?.preview) {
+      URL.revokeObjectURL(coverUpload.preview);
+    }
+    setCoverUpload(null);
+    form.setValue('cover', '');
+  };
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up cover image preview URL when component unmounts
+      if (coverUpload?.preview) {
+        URL.revokeObjectURL(coverUpload.preview);
+      }
+    };
+  }, [coverUpload]);
   
   // Render file upload state
   const renderFileUploadState = () => {
@@ -345,71 +434,203 @@ export function UploadForm() {
       
       {/* Song Metadata Form */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Song title" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="col-span-1">
+              {/* Cover Image Upload */}
+              <FormField
+                control={form.control}
+                name="cover"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cover Image</FormLabel>
+                    <div 
+                      className={`
+                        border-2 border-dashed rounded-lg p-4 text-center
+                        ${coverUpload ? 'border-primary/40 bg-primary/5' : 'border-border'}
+                        ${coverUpload ? 'h-[200px]' : 'h-[150px]'}
+                        relative overflow-hidden
+                      `}
+                      onClick={() => coverInputRef.current?.click()}
+                    >
+                      {coverUpload ? (
+                        <>
+                          <img 
+                            src={coverUpload.preview} 
+                            alt="Cover preview" 
+                            className="object-cover w-full h-full absolute top-0 left-0"
+                          />
+                          <div className="absolute top-2 right-2">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="secondary"
+                              className="h-7 w-7 bg-background/80 hover:bg-background"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                clearCoverImage();
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full cursor-pointer">
+                          <ImagePlus className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground">Add cover image</p>
+                          <p className="text-xs text-muted-foreground mt-1">JPG, PNG (max 2MB)</p>
+                        </div>
+                      )}
+                      <Input
+                        type="hidden"
+                        {...field}
+                      />
+                      <input 
+                        type="file" 
+                        ref={coverInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={handleCoverSelect}
+                      />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             
-            <FormField
-              control={form.control}
-              name="artist"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Artist</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Artist name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="album"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Album (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Album name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="duration"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duration (in seconds)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      placeholder="Duration in seconds" 
-                      {...field} 
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Song title" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="artist"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Artist</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Artist name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="album"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Album (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Album name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="duration"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Duration (seconds)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Duration in seconds" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
           </div>
           
-          <div className="flex justify-end gap-3 pt-4">
+          <Tabs defaultValue="details" className="w-full">
+            <TabsList className="grid grid-cols-2 w-[400px] mb-4">
+              <TabsTrigger value="details">Additional Details</TabsTrigger>
+              <TabsTrigger value="lyrics">Lyrics</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="details" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="genre"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Genre (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Genre" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="year"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Year (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Release year" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="lyrics" className="space-y-4">
+              <FormField
+                control={form.control}
+                name="lyrics"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lyrics (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add song lyrics here..."
+                        className="min-h-[200px] resize-y"
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TabsContent>
+          </Tabs>
+          
+          <div className="flex justify-end gap-3 pt-4 border-t border-border mt-8">
             <Button 
               type="button" 
               variant="outline"

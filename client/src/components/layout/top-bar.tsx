@@ -27,15 +27,15 @@ export function TopBar() {
   };
   
   return (
-    <div className="sticky top-0 z-10 bg-background/90 backdrop-blur-sm px-4 py-3 border-b border-border flex items-center gap-3">
+    <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm px-4 py-3 border-b border-neutral-800 flex items-center gap-3">
       {/* Mobile menu button */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="md:hidden">
+          <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-neutral-800">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0">
+        <SheetContent side="left" className="p-0 bg-black border-r border-neutral-800">
           <Sidebar />
         </SheetContent>
       </Sheet>
@@ -45,9 +45,9 @@ export function TopBar() {
         <img 
           src="/attached_assets/jamvault-logo.png" 
           alt="JamVault Logo" 
-          className="h-8 w-8 object-contain" 
+          className="h-9 w-9 object-contain" 
         />
-        <h1 className="text-lg font-semibold">JamVault</h1>
+        <h1 className="text-lg font-bold gradient-text">JamVault</h1>
       </div>
       
       {/* Navigation buttons */}

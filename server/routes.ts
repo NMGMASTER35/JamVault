@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can upload songs");
     if (!req.file) return res.status(400).send("No file uploaded");
     
-    const { title, artist, album, duration, cover } = req.body;
+    const { title, artist, album, duration, cover, genre, year, lyrics } = req.body;
     
     const song = await storage.createSong({
       title,
@@ -55,6 +55,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       cover: cover || null,
       filePath: req.file.path,
       userId: req.user.id,
+      genre: genre || null,
+      year: year ? parseInt(year) : null,
+      lyrics: lyrics || null,
+      artistId: null, // For now, we're not linking to artist records
+      playCount: 0,
     });
     
     return res.status(201).json(song);

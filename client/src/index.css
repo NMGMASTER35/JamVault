@@ -8,6 +8,30 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-black text-foreground;
+  }
+  
+  :root {
+    --primary-red: #ff0000;
+    --dark-red: #8f0000;
+    --darker-red: #4f0000;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-red-400;
+  }
+  
+  .nav-item {
+    @apply transition-colors hover:text-primary hover:bg-red-950/30;
+  }
+  
+  .btn-primary-glow {
+    @apply bg-primary hover:bg-primary/90 text-white shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/40;
+  }
+  
+  .card-hover {
+    @apply transition-all border border-neutral-800 hover:border-primary/50 bg-neutral-900 hover:bg-neutral-900/70 hover:shadow-lg hover:shadow-primary/10;
   }
 }

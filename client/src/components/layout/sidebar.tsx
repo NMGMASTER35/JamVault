@@ -34,15 +34,15 @@ export function Sidebar() {
   });
   
   return (
-    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-card border-r border-border">
+    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-black border-r border-neutral-800">
       {/* App Logo */}
       <div className="flex items-center gap-3 p-4">
         <img 
           src="/attached_assets/jamvault-logo.png" 
           alt="JamVault Logo" 
-          className="h-10 w-10 object-contain" 
+          className="h-12 w-12 object-contain" 
         />
-        <h1 className="text-xl font-semibold">JamVault</h1>
+        <h1 className="text-xl font-bold gradient-text">JamVault</h1>
       </div>
       
       {/* Navigation */}
@@ -50,8 +50,8 @@ export function Sidebar() {
         <Link href="/">
           <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
             location === "/" 
-              ? "bg-primary text-primary-foreground font-medium" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              ? "bg-primary text-white font-medium" 
+              : "text-gray-300 nav-item"
           }`}>
             <Home className="h-5 w-5" />
             <span>Home</span>
@@ -60,8 +60,8 @@ export function Sidebar() {
         <Link href="/search">
           <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
             location === "/search" 
-              ? "bg-primary text-primary-foreground font-medium" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              ? "bg-primary text-white font-medium" 
+              : "text-gray-300 nav-item"
           }`}>
             <Search className="h-5 w-5" />
             <span>Search</span>
@@ -70,8 +70,8 @@ export function Sidebar() {
         <Link href="/library">
           <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
             location === "/library" 
-              ? "bg-primary text-primary-foreground font-medium" 
-              : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              ? "bg-primary text-white font-medium" 
+              : "text-gray-300 nav-item"
           }`}>
             <Library className="h-5 w-5" />
             <span>Your Library</span>
@@ -79,15 +79,15 @@ export function Sidebar() {
         </Link>
       </nav>
       
-      <div className="mt-2 px-4 py-3 border-t border-border">
+      <div className="mt-2 px-4 py-3 border-t border-neutral-800">
         <Dialog open={isCreatePlaylistOpen} onOpenChange={setIsCreatePlaylistOpen}>
           <DialogTrigger asChild>
-            <a className="flex items-center gap-3 px-3 py-2 rounded-md text-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+            <a className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-300 nav-item cursor-pointer">
               <PlusSquare className="h-5 w-5" />
               <span>Create Playlist</span>
             </a>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="bg-neutral-900 border-neutral-800">
             <PlaylistForm onSuccess={() => setIsCreatePlaylistOpen(false)} />
           </DialogContent>
         </Dialog>
@@ -95,8 +95,8 @@ export function Sidebar() {
           <Link href="/upload">
             <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
               location === "/upload" 
-                ? "bg-primary text-primary-foreground font-medium" 
-                : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                ? "bg-primary text-white font-medium" 
+                : "text-gray-300 nav-item"
             }`}>
               <Upload className="h-5 w-5" />
               <span>Upload Music</span>
@@ -108,34 +108,34 @@ export function Sidebar() {
       {/* Playlists */}
       <div className="mt-2 flex-grow overflow-hidden">
         <div className="px-6 mb-2">
-          <h2 className="text-sm font-semibold text-muted-foreground">YOUR PLAYLISTS</h2>
+          <h2 className="text-sm font-bold text-gray-400">YOUR PLAYLISTS</h2>
         </div>
         <ScrollArea className="h-full">
           <div className="px-2 pb-6">
             {isLoadingPlaylists ? (
               <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : playlists && playlists.length > 0 ? (
               playlists.map((playlist) => (
                 <Link href={`/playlist/${playlist.id}`} key={playlist.id}>
                   <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
                     location === `/playlist/${playlist.id}` 
-                      ? "bg-primary text-primary-foreground font-medium" 
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                      ? "bg-primary text-white font-medium" 
+                      : "text-gray-300 nav-item"
                   }`}>
-                    <div className="w-10 h-10 bg-accent rounded-md flex items-center justify-center">
-                      <Music2 className="h-5 w-5 text-accent-foreground" />
+                    <div className="w-10 h-10 bg-neutral-800 rounded-md flex items-center justify-center card-hover">
+                      <Music2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <div className="text-sm font-medium truncate max-w-[140px]">{playlist.name}</div>
-                      <div className="text-xs text-muted-foreground">Playlist</div>
+                      <div className="text-xs text-gray-400">Playlist</div>
                     </div>
                   </a>
                 </Link>
               ))
             ) : (
-              <div className="text-center py-4 px-3 text-muted-foreground text-sm">
+              <div className="text-center py-4 px-3 text-gray-400 text-sm">
                 No playlists yet
               </div>
             )}
@@ -144,16 +144,16 @@ export function Sidebar() {
       </div>
       
       {/* User Section */}
-      <div className="mt-auto p-4 border-t border-border">
+      <div className="mt-auto p-4 border-t border-neutral-800">
         <div className="flex items-center gap-3 p-2">
-          <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center">
-            <User className="h-5 w-5 text-accent-foreground" />
+          <div className="w-9 h-9 rounded-full bg-neutral-800 flex items-center justify-center">
+            <User className="h-5 w-5 text-primary" />
           </div>
-          <div className="text-sm font-medium truncate">{user?.displayName || user?.username}</div>
+          <div className="text-sm font-medium truncate text-white">{user?.displayName || user?.username}</div>
           <Button 
             size="icon" 
             variant="ghost" 
-            className="ml-auto text-muted-foreground hover:text-foreground"
+            className="ml-auto text-gray-400 hover:text-white hover:bg-neutral-800"
             onClick={() => logoutMutation.mutate()}
           >
             <LogOut className="h-4 w-4" />
