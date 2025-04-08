@@ -22,6 +22,10 @@ export default function HomePage() {
     error: songsError
   } = useQuery<Song[]>({
     queryKey: ['/api/songs'],
+    queryFn: () => fetch('/api/songs').then(res => {
+      if (!res.ok) throw new Error('Failed to fetch songs');
+      return res.json();
+    }),
   });
 
   // Fetch recently added songs
@@ -31,6 +35,10 @@ export default function HomePage() {
     error: recentSongsError
   } = useQuery<Song[]>({
     queryKey: ['/api/songs/recent'],
+    queryFn: () => fetch('/api/songs/recent').then(res => {
+      if (!res.ok) throw new Error('Failed to fetch recent songs');
+      return res.json();
+    }),
   });
 
   // Fetch user's playlists
