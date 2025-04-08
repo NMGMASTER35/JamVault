@@ -41,7 +41,7 @@ export function Sidebar() {
       {/* App Logo */}
       <div className="flex items-center gap-3 p-4">
         <img 
-          src="/attached_assets/jamvault-logo.png" 
+          src="/src/assets/jamvault-logo.png" 
           alt="JamVault Logo" 
           className="h-12 w-12 object-contain" 
         />

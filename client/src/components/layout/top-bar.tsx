@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/hooks/use-auth";
+import { useOfflineMode } from "@/hooks/use-offline-mode";
+import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,12 +27,15 @@ import {
   UserCircle,
   Settings,
   MessageSquare,
+  Wifi,
+  WifiOff,
 } from "lucide-react";
 
 export function TopBar() {
   const [location, navigate] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const { user, logoutMutation } = useAuth();
+  const { isOffline, setOfflineMode } = useOfflineMode();
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +61,7 @@ export function TopBar() {
       {/* App Logo for mobile */}
       <div className="md:hidden flex items-center gap-2">
         <img 
-          src="/attached_assets/jamvault-logo.png" 
+          src="/src/assets/jamvault-logo.png" 
           alt="JamVault Logo" 
           className="h-9 w-9 object-contain" 
         />
@@ -109,6 +114,14 @@ export function TopBar() {
         </Button>
       )}
       
+      {/* Offline mode indicator */}
+      {isOffline && (
+        <div className="hidden sm:flex items-center gap-2 ml-3 text-amber-500 bg-amber-950/30 px-3 py-1 rounded-full text-sm">
+          <WifiOff className="h-3.5 w-3.5" />
+          <span>Offline</span>
+        </div>
+      )}
+      
       {/* User menu */}
       <div className="ml-auto">
         <DropdownMenu>
@@ -145,6 +158,27 @@ export function TopBar() {
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => setOfflineMode(!isOffline)}
+              className="cursor-pointer"
+            >
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center">
+                  {isOffline ? (
+                    <WifiOff className="mr-2 h-4 w-4 text-amber-500" />
+                  ) : (
+                    <Wifi className="mr-2 h-4 w-4" />
+                  )}
+                  <span>Offline Mode</span>
+                </div>
+                <Switch
+                  checked={isOffline}
+                  onCheckedChange={setOfflineMode}
+                  className="ml-2"
+                />
+              </div>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="text-red-500 focus:bg-red-500/10 focus:text-red-500"

@@ -15,6 +15,7 @@ import StatsPage from "@/pages/stats-page";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AudioProvider } from "@/lib/audioContext";
+import { OfflineModeProvider } from "@/hooks/use-offline-mode";
 
 function Router() {
   return (
@@ -37,10 +38,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <AudioProvider>
-          <Router />
-          <Toaster />
-        </AudioProvider>
+        <OfflineModeProvider>
+          <AudioProvider>
+            <Router />
+            <Toaster />
+          </AudioProvider>
+        </OfflineModeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

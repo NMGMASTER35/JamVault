@@ -130,7 +130,7 @@ export default function ProfilePage() {
   }
   
   return (
-    <div className="container max-w-3xl py-8">
+    <div className="container max-w-3xl py-8 mx-auto">
       <div className="flex items-center mb-6">
         <Button 
           variant="ghost" 
