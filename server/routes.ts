@@ -1,11 +1,21 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { setupUpload } from "./multer";
 import fs from "fs";
 import path from "path";
-import { insertPlaylistSchema, insertPlaylistSongSchema } from "@shared/schema";
+import { scrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+import { 
+  insertPlaylistSchema, 
+  insertPlaylistSongSchema, 
+  insertSongRequestSchema, 
+  requestPasswordResetSchema,
+  resetPasswordSchema,
+  updateProfileSchema,
+  passwordSchema 
+} from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup auth routes (/api/register, /api/login, /api/logout, /api/user)
@@ -305,6 +315,207 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const isFavorite = await storage.isFavorite(req.user.id, songId);
     res.json({ isFavorite });
+  });
+
+  // Recently added songs
+  app.get("/api/songs/recent", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const songs = await storage.getRecentlyAddedSongs(limit);
+    return res.json(songs);
+  });
+
+  // User profile routes
+  app.get("/api/profile", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const user = await storage.getUser(req.user.id);
+    if (!user) return res.status(404).send("User not found");
+    
+    // Don't send password
+    const { password, ...safeUser } = user;
+    return res.json(safeUser);
+  });
+
+  app.patch("/api/profile", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const validatedData = updateProfileSchema.parse(req.body);
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user) return res.status(404).send("User not found");
+      
+      // If changing password, verify current password
+      if (validatedData.newPassword) {
+        // Verify current password is correct
+        const scryptAsync = promisify(scrypt);
+        const [hashedPassword, salt] = user.password.split('.');
+        const hashedBuffer = Buffer.from(hashedPassword, 'hex');
+        const suppliedBuffer = (await scryptAsync(validatedData.currentPassword, salt, 64)) as Buffer;
+        
+        const passwordsMatch = timingSafeEqual(hashedBuffer, suppliedBuffer);
+        
+        if (!passwordsMatch) {
+          return res.status(400).json({ 
+            error: "Current password is incorrect",
+            field: "currentPassword" 
+          });
+        }
+        
+        // Update the password
+        await storage.updatePassword(user.id, validatedData.newPassword);
+      }
+      
+      // Update other profile fields
+      const updates: any = {};
+      if (validatedData.displayName) updates.displayName = validatedData.displayName;
+      if (validatedData.bio) updates.bio = validatedData.bio;
+      if (validatedData.email) updates.email = validatedData.email;
+      
+      if (Object.keys(updates).length > 0) {
+        await storage.updateUser(user.id, updates);
+      }
+      
+      // Get updated user
+      const updatedUser = await storage.getUser(user.id);
+      if (!updatedUser) return res.status(404).send("User not found");
+      
+      // Don't send password
+      const { password, ...safeUser } = updatedUser;
+      return res.json(safeUser);
+      
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid profile data" });
+    }
+  });
+
+  // Password reset routes
+  app.post("/api/password-reset/request", async (req: Request, res: Response) => {
+    try {
+      const { email } = requestPasswordResetSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return res.status(200).json({ message: "If your email is associated with an account, you will receive a password reset link shortly." });
+      }
+      
+      // Generate reset token
+      const token = await storage.createPasswordResetToken(user.id);
+      
+      // In a real application, send an email with the reset link
+      // For demo purposes, just return the token in the response
+      return res.status(200).json({ 
+        message: "If your email is associated with an account, you will receive a password reset link shortly.",
+        // In a real app, don't include the token in the response
+        // This is for demo purposes only
+        token: token
+      });
+      
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid email" });
+    }
+  });
+
+  app.post("/api/password-reset/reset", async (req: Request, res: Response) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+      
+      // Validate token
+      const user = await storage.validatePasswordResetToken(token);
+      if (!user) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+      
+      // Update password
+      await storage.updatePassword(user.id, password);
+      
+      return res.status(200).json({ message: "Password updated successfully" });
+      
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid reset request" });
+    }
+  });
+
+  // Song request routes
+  app.get("/api/song-requests", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    // If admin, return all requests, otherwise return only user's requests
+    const requests = req.user.isAdmin 
+      ? await storage.getAllSongRequests()
+      : await storage.getSongRequestsByUser(req.user.id);
+      
+    return res.json(requests);
+  });
+
+  app.get("/api/song-requests/pending", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can view pending song requests");
+    
+    const requests = await storage.getPendingSongRequests();
+    return res.json(requests);
+  });
+
+  app.post("/api/song-requests", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const validatedData = insertSongRequestSchema.parse({
+        ...req.body,
+        userId: req.user.id
+      });
+      
+      const request = await storage.createSongRequest(validatedData);
+      return res.status(201).json(request);
+      
+    } catch (error) {
+      return res.status(400).json({ error: "Invalid song request data" });
+    }
+  });
+
+  app.patch("/api/song-requests/:id/status", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can update song request status");
+    
+    const id = parseInt(req.params.id);
+    const { status, adminMessage } = req.body;
+    
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    
+    const updatedRequest = await storage.updateSongRequestStatus(id, status, adminMessage);
+    if (!updatedRequest) {
+      return res.status(404).send("Song request not found");
+    }
+    
+    return res.json(updatedRequest);
+  });
+
+  app.delete("/api/song-requests/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const id = parseInt(req.params.id);
+    const request = await storage.getSongRequest(id);
+    
+    if (!request) {
+      return res.status(404).send("Song request not found");
+    }
+    
+    // Only the owner or an admin can delete a request
+    if (request.userId !== req.user.id && !req.user.isAdmin) {
+      return res.status(403).send("Forbidden");
+    }
+    
+    const success = await storage.deleteSongRequest(id);
+    if (success) {
+      return res.status(204).send();
+    } else {
+      return res.status(500).send("Failed to delete song request");
+    }
   });
 
   // Create HTTP server

@@ -23,10 +23,15 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<Omit<User, "id" | "isAdmin" | "createdAt">>): Promise<User | undefined>;
   getUserStats(userId: number): Promise<any>;
   updateUserStats(userId: number, stats: any): Promise<any>;
+  createPasswordResetToken(userId: number): Promise<string>;
+  validatePasswordResetToken(token: string): Promise<User | undefined>;
+  updatePassword(userId: number, newPassword: string): Promise<boolean>;
+  getRecentlyRegisteredUsers(limit?: number): Promise<User[]>;
   
   // Artist operations
   getArtist(id: number): Promise<Artist | undefined>;
@@ -41,6 +46,7 @@ export interface IStorage {
   getSongsByArtist(artistId: number): Promise<Song[]>;
   getSongsByGenre(genre: string): Promise<Song[]>;
   getAllSongs(): Promise<Song[]>;
+  getRecentlyAddedSongs(limit?: number): Promise<Song[]>;
   createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song>;
   updateSong(id: number, updates: Partial<Omit<Song, "id" | "userId" | "uploadedAt">>): Promise<Song | undefined>;
   incrementPlayCount(id: number): Promise<Song | undefined>;
@@ -90,6 +96,15 @@ export interface IStorage {
   createGame(game: Omit<Game, "id" | "createdAt">): Promise<Game>;
   updateGame(id: number, updates: Partial<Omit<Game, "id" | "createdAt">>): Promise<Game | undefined>;
   deleteGame(id: number): Promise<boolean>;
+  
+  // Song Requests operations
+  getSongRequest(id: number): Promise<SongRequest | undefined>;
+  getSongRequestsByUser(userId: number): Promise<SongRequest[]>;
+  getAllSongRequests(): Promise<SongRequest[]>;
+  getPendingSongRequests(): Promise<SongRequest[]>;
+  createSongRequest(songRequest: InsertSongRequest): Promise<SongRequest>;
+  updateSongRequestStatus(id: number, status: 'pending' | 'approved' | 'rejected', adminMessage?: string): Promise<SongRequest | undefined>;
+  deleteSongRequest(id: number): Promise<boolean>;
 
   // Session store
   sessionStore: any; // Express session store
@@ -105,6 +120,7 @@ export class MemStorage implements IStorage {
   private songComments: Map<number, SongComment>;
   private userListeningHistory: Map<number, UserListeningHistory>;
   private games: Map<number, Game>;
+  private songRequests: Map<number, SongRequest>;
   sessionStore: any; // Express session store
   
   private userIdCounter: number;
@@ -116,6 +132,7 @@ export class MemStorage implements IStorage {
   private songCommentIdCounter: number;
   private listeningHistoryIdCounter: number;
   private gameIdCounter: number;
+  private songRequestIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -127,6 +144,7 @@ export class MemStorage implements IStorage {
     this.songComments = new Map();
     this.userListeningHistory = new Map();
     this.games = new Map();
+    this.songRequests = new Map();
     
     this.userIdCounter = 1;
     this.songIdCounter = 1;
@@ -137,6 +155,7 @@ export class MemStorage implements IStorage {
     this.songCommentIdCounter = 1;
     this.listeningHistoryIdCounter = 1;
     this.gameIdCounter = 1;
+    this.songRequestIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
@@ -704,6 +723,140 @@ export class MemStorage implements IStorage {
   
   async deleteGame(id: number): Promise<boolean> {
     return this.games.delete(id);
+  }
+
+  // Song Request methods
+  async getSongRequest(id: number): Promise<SongRequest | undefined> {
+    return this.songRequests.get(id);
+  }
+
+  async getSongRequestsByUser(userId: number): Promise<SongRequest[]> {
+    return Array.from(this.songRequests.values()).filter(
+      (request) => request.userId === userId,
+    );
+  }
+
+  async getAllSongRequests(): Promise<SongRequest[]> {
+    return Array.from(this.songRequests.values());
+  }
+
+  async getPendingSongRequests(): Promise<SongRequest[]> {
+    return Array.from(this.songRequests.values()).filter(
+      (request) => request.status === 'pending',
+    );
+  }
+
+  async createSongRequest(songRequest: InsertSongRequest): Promise<SongRequest> {
+    const id = this.songRequestIdCounter++;
+    const now = new Date();
+    
+    const newRequest: SongRequest = {
+      ...songRequest,
+      id,
+      status: 'pending',
+      adminMessage: null,
+      createdAt: now,
+    };
+    
+    this.songRequests.set(id, newRequest);
+    return newRequest;
+  }
+
+  async updateSongRequestStatus(
+    id: number, 
+    status: 'pending' | 'approved' | 'rejected', 
+    adminMessage?: string
+  ): Promise<SongRequest | undefined> {
+    const request = this.songRequests.get(id);
+    if (!request) return undefined;
+    
+    const updatedRequest: SongRequest = {
+      ...request,
+      status,
+      adminMessage: adminMessage || request.adminMessage,
+    };
+    
+    this.songRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
+
+  async deleteSongRequest(id: number): Promise<boolean> {
+    return this.songRequests.delete(id);
+  }
+
+  // User profile methods
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+
+  async createPasswordResetToken(userId: number): Promise<string> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    // Generate a random token
+    const token = randomBytes(32).toString('hex');
+    
+    // Set token expiry for 1 hour from now
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + 1);
+    
+    // Update user with token and expiry
+    const updatedUser = {
+      ...user,
+      resetToken: token,
+      resetTokenExpiry: expiry,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return token;
+  }
+
+  async validatePasswordResetToken(token: string): Promise<User | undefined> {
+    const user = Array.from(this.users.values()).find(
+      (user) => user.resetToken === token
+    );
+    
+    if (!user) return undefined;
+    
+    // Check if token is expired
+    if (user.resetTokenExpiry && user.resetTokenExpiry < new Date()) {
+      return undefined;
+    }
+    
+    return user;
+  }
+
+  async updatePassword(userId: number, newPassword: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    if (!user) return false;
+    
+    // Hash the new password
+    const hashedPassword = await hashPassword(newPassword);
+    
+    // Update user
+    const updatedUser = {
+      ...user,
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return true;
+  }
+
+  async getRecentlyRegisteredUsers(limit: number = 10): Promise<User[]> {
+    return Array.from(this.users.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async getRecentlyAddedSongs(limit: number = 10): Promise<Song[]> {
+    return Array.from(this.songs.values())
+      .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
+      .slice(0, limit);
   }
 }
 

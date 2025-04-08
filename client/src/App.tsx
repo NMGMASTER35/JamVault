@@ -9,6 +9,8 @@ import LibraryPage from "@/pages/library-page";
 import PlaylistPage from "@/pages/playlist-page";
 import UploadPage from "@/pages/upload-page";
 import SearchPage from "@/pages/search-page";
+import ProfilePage from "@/pages/profile-page";
+import SongRequestPage from "@/pages/song-request-page";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AudioProvider } from "@/lib/audioContext";
@@ -22,6 +24,8 @@ function Router() {
       <ProtectedRoute path="/playlist/:id" component={PlaylistPage} />
       <ProtectedRoute path="/upload" component={UploadPage} />
       <ProtectedRoute path="/search" component={SearchPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/song-request" component={SongRequestPage} />
       <Route component={NotFound} />
     </Switch>
   );

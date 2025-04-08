@@ -18,6 +18,9 @@ import {
   LogOut,
   Music2,
   Loader2,
+  UserCircle,
+  MessageSquare,
+  Clock,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -91,6 +94,29 @@ export function Sidebar() {
             <PlaylistForm onSuccess={() => setIsCreatePlaylistOpen(false)} />
           </DialogContent>
         </Dialog>
+        
+        <Link href="/song-request">
+          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+            location === "/song-request" 
+              ? "bg-primary text-white font-medium" 
+              : "text-gray-300 nav-item"
+          }`}>
+            <MessageSquare className="h-5 w-5" />
+            <span>Song Requests</span>
+          </a>
+        </Link>
+        
+        <Link href="/profile">
+          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+            location === "/profile" 
+              ? "bg-primary text-white font-medium" 
+              : "text-gray-300 nav-item"
+          }`}>
+            <UserCircle className="h-5 w-5" />
+            <span>Your Profile</span>
+          </a>
+        </Link>
+        
         {user?.isAdmin && (
           <Link href="/upload">
             <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
