@@ -35,10 +35,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
-    // If admin, return own songs, otherwise return all songs
-    const songs = req.user.isAdmin 
-      ? await storage.getSongsByUser(req.user.id)
-      : await storage.getAllSongs();
+    // Return all songs for everyone
+    const songs = await storage.getAllSongs();
     return res.json(songs);
   });
   
@@ -318,13 +316,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ isFavorite });
   });
 
-  // Recently added songs
+  // Recently added songs - make sure this endpoint comes AFTER /api/songs/:id handlers
   app.get("/api/songs/recent", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-    const songs = await storage.getRecentlyAddedSongs(limit);
-    return res.json(songs);
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const songs = await storage.getRecentlyAddedSongs(limit);
+      return res.json(songs);
+    } catch (error) {
+      console.error("Error fetching recent songs:", error);
+      return res.status(500).send("Error fetching recent songs");
+    }
   });
 
   // User profile routes

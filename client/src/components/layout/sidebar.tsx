@@ -85,10 +85,10 @@ export function Sidebar() {
       <div className="mt-2 px-4 py-3 border-t border-neutral-800">
         <Dialog open={isCreatePlaylistOpen} onOpenChange={setIsCreatePlaylistOpen}>
           <DialogTrigger asChild>
-            <a className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-300 nav-item cursor-pointer">
+            <button className="flex items-center gap-3 px-3 py-2 rounded-md text-gray-300 nav-item cursor-pointer w-full text-left">
               <PlusSquare className="h-5 w-5" />
               <span>Create Playlist</span>
-            </a>
+            </button>
           </DialogTrigger>
           <DialogContent className="bg-neutral-900 border-neutral-800">
             <PlaylistForm onSuccess={() => setIsCreatePlaylistOpen(false)} />

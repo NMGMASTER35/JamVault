@@ -12,13 +12,16 @@ import {
   Heart,
   Download,
   ListMusic,
-  Mic
+  Mic,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAudio } from "@/lib/audioContext";
 import { Waveform } from "@/components/music/waveform";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 export function AudioPlayer() {
+  const [showLyrics, setShowLyrics] = useState(false);
   const {
     currentSong,
     isPlaying,
@@ -186,13 +189,33 @@ export function AudioPlayer() {
           
           {/* Volume and extra controls */}
           <div className="w-1/4 min-w-[140px] flex items-center justify-end gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden sm:flex text-muted-foreground hover:text-foreground"
-            >
-              <Mic className="h-5 w-5" />
-            </Button>
+            <Dialog open={showLyrics} onOpenChange={setShowLyrics}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden sm:flex text-muted-foreground hover:text-foreground"
+                  disabled={!currentSong}
+                >
+                  <FileText className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Lyrics</h3>
+                  <h4 className="text-md font-medium">{currentSong?.title} - {currentSong?.artist}</h4>
+                  
+                  <div className="max-h-[60vh] overflow-y-auto">
+                    {currentSong?.lyrics ? (
+                      <div className="whitespace-pre-line">{currentSong.lyrics}</div>
+                    ) : (
+                      <div className="text-muted-foreground italic">No lyrics available for this song.</div>
+                    )}
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            
             <Button
               variant="ghost"
               size="icon"
@@ -200,6 +223,7 @@ export function AudioPlayer() {
             >
               <ListMusic className="h-5 w-5" />
             </Button>
+            
             <Button
               variant="ghost"
               size="icon"
@@ -209,6 +233,7 @@ export function AudioPlayer() {
             >
               <Download className="h-5 w-5" />
             </Button>
+            
             <div className="hidden sm:flex items-center gap-2 w-24">
               <Button
                 variant="ghost"

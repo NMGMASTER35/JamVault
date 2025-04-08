@@ -41,7 +41,7 @@ export function FeaturedContent() {
             <h1 className="text-3xl md:text-4xl font-bold mt-2">
               {songs && songs.length > 0 
                 ? "Your Music Collection" 
-                : "Welcome to SoundStream"}
+                : "Welcome to JamVault"}
             </h1>
             <p className="text-muted-foreground mt-1">
               {songs && songs.length > 0 

@@ -562,7 +562,12 @@ export class MemStorage implements IStorage {
   async getUserListeningHistory(userId: number): Promise<UserListeningHistory[]> {
     return Array.from(this.userListeningHistory.values())
       .filter(history => history.userId === userId)
-      .sort((a, b) => b.listenDate.getTime() - a.listenDate.getTime()); // Most recent first
+      .sort((a, b) => {
+        // Handle null listenDate values
+        if (!a.listenDate) return 1;
+        if (!b.listenDate) return -1;
+        return b.listenDate.getTime() - a.listenDate.getTime();
+      }); // Most recent first
   }
   
   async getUserListeningStats(userId: number): Promise<{
@@ -860,13 +865,23 @@ export class MemStorage implements IStorage {
 
   async getRecentlyRegisteredUsers(limit: number = 10): Promise<User[]> {
     return Array.from(this.users.values())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .sort((a, b) => {
+        // Handle null createdAt values
+        if (!a.createdAt) return 1;
+        if (!b.createdAt) return -1;
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      })
       .slice(0, limit);
   }
 
   async getRecentlyAddedSongs(limit: number = 10): Promise<Song[]> {
     return Array.from(this.songs.values())
-      .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
+      .sort((a, b) => {
+        // Handle null uploadedAt values
+        if (!a.uploadedAt) return 1;
+        if (!b.uploadedAt) return -1;
+        return b.uploadedAt.getTime() - a.uploadedAt.getTime();
+      })
       .slice(0, limit);
   }
 
