@@ -1,7 +1,8 @@
-import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games } from "@shared/schema";
+import { users, songs, playlists, playlistSongs, favorites, songComments, userListeningHistory, artists, games, shortLinks, songRequests } from "@shared/schema";
 import type { 
   User, InsertUser, Song, Playlist, PlaylistSong, Favorite, 
-  SongComment, UserListeningHistory, Artist, Game
+  SongComment, UserListeningHistory, Artist, Game, SongRequest, InsertSongRequest,
+  ShortLink, InsertShortLink
 } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -105,6 +106,12 @@ export interface IStorage {
   createSongRequest(songRequest: InsertSongRequest): Promise<SongRequest>;
   updateSongRequestStatus(id: number, status: 'pending' | 'approved' | 'rejected', adminMessage?: string): Promise<SongRequest | undefined>;
   deleteSongRequest(id: number): Promise<boolean>;
+  
+  // Short Link operations
+  createShortLink(shortLink: InsertShortLink): Promise<ShortLink>;
+  getShortLink(shortId: string): Promise<ShortLink | undefined>;
+  incrementShortLinkClicks(shortId: string): Promise<ShortLink | undefined>;
+  deleteShortLink(id: number): Promise<boolean>;
 
   // Session store
   sessionStore: any; // Express session store
@@ -121,6 +128,7 @@ export class MemStorage implements IStorage {
   private userListeningHistory: Map<number, UserListeningHistory>;
   private games: Map<number, Game>;
   private songRequests: Map<number, SongRequest>;
+  private shortLinks: Map<number, ShortLink>;
   sessionStore: any; // Express session store
   
   private userIdCounter: number;
@@ -133,6 +141,7 @@ export class MemStorage implements IStorage {
   private listeningHistoryIdCounter: number;
   private gameIdCounter: number;
   private songRequestIdCounter: number;
+  private shortLinkIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -145,6 +154,7 @@ export class MemStorage implements IStorage {
     this.userListeningHistory = new Map();
     this.games = new Map();
     this.songRequests = new Map();
+    this.shortLinks = new Map();
     
     this.userIdCounter = 1;
     this.songIdCounter = 1;
@@ -156,6 +166,7 @@ export class MemStorage implements IStorage {
     this.listeningHistoryIdCounter = 1;
     this.gameIdCounter = 1;
     this.songRequestIdCounter = 1;
+    this.shortLinkIdCounter = 1;
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // 24 hours
@@ -857,6 +868,40 @@ export class MemStorage implements IStorage {
     return Array.from(this.songs.values())
       .sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime())
       .slice(0, limit);
+  }
+
+  // Short Link methods
+  async createShortLink(shortLink: InsertShortLink): Promise<ShortLink> {
+    const id = this.shortLinkIdCounter++;
+    const now = new Date();
+    const newShortLink: ShortLink = {
+      ...shortLink,
+      id,
+      createdAt: now,
+      clicks: 0
+    };
+    this.shortLinks.set(id, newShortLink);
+    return newShortLink;
+  }
+
+  async getShortLink(shortId: string): Promise<ShortLink | undefined> {
+    return Array.from(this.shortLinks.values()).find(link => link.shortId === shortId);
+  }
+
+  async incrementShortLinkClicks(shortId: string): Promise<ShortLink | undefined> {
+    const shortLink = await this.getShortLink(shortId);
+    if (!shortLink) return undefined;
+
+    const updatedShortLink: ShortLink = {
+      ...shortLink,
+      clicks: (shortLink.clicks || 0) + 1
+    };
+    this.shortLinks.set(shortLink.id, updatedShortLink);
+    return updatedShortLink;
+  }
+
+  async deleteShortLink(id: number): Promise<boolean> {
+    return this.shortLinks.delete(id);
   }
 }
 

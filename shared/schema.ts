@@ -119,6 +119,17 @@ export const songRequests = pgTable("song_requests", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const shortLinks = pgTable("short_links", {
+  id: serial("id").primaryKey(),
+  shortId: text("short_id").notNull().unique(),
+  targetUrl: text("target_url").notNull(),
+  type: text("type").default("song").notNull(), // "song", "playlist", etc.
+  referenceId: integer("reference_id"), // optional id reference
+  userId: integer("user_id").notNull(),
+  clicks: integer("clicks").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert Schemas and Types
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -174,6 +185,12 @@ export const insertSongRequestSchema = createInsertSchema(songRequests).omit({
   adminMessage: true,
 });
 
+export const insertShortLinkSchema = createInsertSchema(shortLinks).omit({
+  id: true,
+  createdAt: true,
+  clicks: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Artist = typeof artists.$inferSelect;
@@ -186,6 +203,8 @@ export type UserListeningHistory = typeof userListeningHistory.$inferSelect;
 export type Game = typeof games.$inferSelect;
 export type SongRequest = typeof songRequests.$inferSelect;
 export type InsertSongRequest = z.infer<typeof insertSongRequestSchema>;
+export type ShortLink = typeof shortLinks.$inferSelect;
+export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
 
 // Extended Schemas for Forms
 export const passwordSchema = z.string()

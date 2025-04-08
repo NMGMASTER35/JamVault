@@ -14,7 +14,8 @@ import {
   requestPasswordResetSchema,
   resetPasswordSchema,
   updateProfileSchema,
-  passwordSchema 
+  passwordSchema,
+  insertShortLinkSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -537,6 +538,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(204).send();
     } else {
       return res.status(500).send("Failed to delete song request");
+    }
+  });
+
+  // Short Link routes
+  app.post("/api/shortlinks", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const { targetUrl, type, referenceId } = req.body;
+    
+    if (!targetUrl) {
+      return res.status(400).send("Target URL is required");
+    }
+    
+    // Generate a short unique ID
+    const shortId = Math.random().toString(36).substring(2, 8);
+    
+    try {
+      const validatedData = insertShortLinkSchema.parse({
+        shortId,
+        targetUrl,
+        userId: req.user.id,
+        type: type || "song",
+        referenceId: referenceId || null,
+      });
+      
+      const shortLink = await storage.createShortLink(validatedData);
+      
+      return res.status(201).json(shortLink);
+    } catch (error) {
+      console.error("Error creating short link:", error);
+      return res.status(500).send("Failed to create short link");
+    }
+  });
+  
+  app.get("/api/shortlinks/:shortId", async (req: Request, res: Response) => {
+    const shortId = req.params.shortId;
+    
+    if (!shortId) {
+      return res.status(400).send("Short ID is required");
+    }
+    
+    try {
+      const shortLink = await storage.getShortLink(shortId);
+      
+      if (!shortLink) {
+        return res.status(404).send("Short link not found");
+      }
+      
+      // If we're just retrieving info, don't increment counter
+      return res.json(shortLink);
+    } catch (error) {
+      console.error("Error fetching short link:", error);
+      return res.status(500).send("Failed to fetch short link");
+    }
+  });
+  
+  // Redirect endpoint for short links
+  app.get("/s/:shortId", async (req: Request, res: Response) => {
+    const shortId = req.params.shortId;
+    
+    try {
+      const shortLink = await storage.getShortLink(shortId);
+      
+      if (!shortLink) {
+        return res.status(404).send("Short link not found");
+      }
+      
+      // Increment the click counter
+      await storage.incrementShortLinkClicks(shortId);
+      
+      // Redirect to the target URL
+      return res.redirect(shortLink.targetUrl);
+    } catch (error) {
+      console.error("Error processing short link redirect:", error);
+      return res.status(500).send("Failed to process redirect");
+    }
+  });
+  
+  app.delete("/api/shortlinks/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const id = parseInt(req.params.id);
+    
+    try {
+      const success = await storage.deleteShortLink(id);
+      
+      if (success) {
+        return res.status(204).send();
+      } else {
+        return res.status(404).send("Short link not found");
+      }
+    } catch (error) {
+      console.error("Error deleting short link:", error);
+      return res.status(500).send("Failed to delete short link");
     }
   });
 

@@ -1,6 +1,7 @@
 import { Song } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Play } from "lucide-react";
+import { ShareDialog } from "./share-dialog";
 
 interface SongCardProps {
   song: Song;
@@ -26,13 +27,23 @@ export function SongCard({ song, onClick }: SongCardProps) {
             </svg>
           )}
         </div>
-        <Button 
-          size="icon"
-          className="absolute right-2 bottom-2 w-10 h-10 rounded-full bg-primary text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-          onClick={onClick}
-        >
-          <Play className="h-5 w-5" />
-        </Button>
+        <div className="absolute right-2 bottom-2 flex gap-1">
+          <ShareDialog 
+            songId={song.id} 
+            songTitle={song.title} 
+            songArtist={song.artist} 
+          />
+          <Button 
+            size="icon"
+            className="w-10 h-10 rounded-full bg-primary text-primary-foreground opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+            onClick={(e) => {
+              e.stopPropagation();
+              onClick();
+            }}
+          >
+            <Play className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
       <div className="text-sm font-medium truncate">{song.title}</div>
       <div className="text-xs text-muted-foreground truncate">{song.artist}</div>

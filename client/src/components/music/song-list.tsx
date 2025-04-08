@@ -3,9 +3,11 @@ import { useMutation } from "@tanstack/react-query";
 import { formatDistance } from "date-fns";
 import { 
   MoreHorizontal, 
-  Play 
+  Play,
+  Share2
 } from "lucide-react";
 import { FavoriteButton } from "./favorite-button";
+import { ShareDialog } from "./share-dialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -172,6 +174,20 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                       
                       <DropdownMenuItem>
                         Download
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild>
+                        <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+                          <div className="flex items-center">
+                            <Share2 className="h-4 w-4 mr-2" />
+                            <span>Share</span>
+                          </div>
+                          <ShareDialog 
+                            songId={song.id} 
+                            songTitle={song.title} 
+                            songArtist={song.artist} 
+                          />
+                        </div>
                       </DropdownMenuItem>
                       
                       <DropdownMenuSeparator />
