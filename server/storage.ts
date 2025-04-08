@@ -1,0 +1,198 @@
+import { users, songs, playlists, playlistSongs } from "@shared/schema";
+import type { User, InsertUser, Song, Playlist, PlaylistSong } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+
+const MemoryStore = createMemoryStore(session);
+
+// Interface for storage operations
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
+  // Song operations
+  getSong(id: number): Promise<Song | undefined>;
+  getSongsByUser(userId: number): Promise<Song[]>;
+  createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song>;
+  deleteSong(id: number): Promise<boolean>;
+  
+  // Playlist operations
+  getPlaylist(id: number): Promise<Playlist | undefined>;
+  getPlaylistsByUser(userId: number): Promise<Playlist[]>;
+  createPlaylist(playlist: Omit<Playlist, "id" | "createdAt">): Promise<Playlist>;
+  updatePlaylist(id: number, playlist: Partial<Omit<Playlist, "id" | "userId" | "createdAt">>): Promise<Playlist | undefined>;
+  deletePlaylist(id: number): Promise<boolean>;
+  
+  // Playlist song operations
+  getPlaylistSongs(playlistId: number): Promise<Song[]>;
+  addSongToPlaylist(playlistId: number, songId: number): Promise<PlaylistSong>;
+  removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean>;
+
+  // Session store
+  sessionStore: session.SessionStore;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private songs: Map<number, Song>;
+  private playlists: Map<number, Playlist>;
+  private playlistSongs: Map<number, PlaylistSong>;
+  sessionStore: session.SessionStore;
+  
+  private userIdCounter: number;
+  private songIdCounter: number;
+  private playlistIdCounter: number;
+  private playlistSongIdCounter: number;
+
+  constructor() {
+    this.users = new Map();
+    this.songs = new Map();
+    this.playlists = new Map();
+    this.playlistSongs = new Map();
+    
+    this.userIdCounter = 1;
+    this.songIdCounter = 1;
+    this.playlistIdCounter = 1;
+    this.playlistSongIdCounter = 1;
+    
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
+    });
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const now = new Date();
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      displayName: insertUser.username,
+      createdAt: now 
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  // Song methods
+  async getSong(id: number): Promise<Song | undefined> {
+    return this.songs.get(id);
+  }
+
+  async getSongsByUser(userId: number): Promise<Song[]> {
+    return Array.from(this.songs.values()).filter(
+      (song) => song.userId === userId,
+    );
+  }
+
+  async createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song> {
+    const id = this.songIdCounter++;
+    const now = new Date();
+    const newSong: Song = { ...song, id, uploadedAt: now };
+    this.songs.set(id, newSong);
+    return newSong;
+  }
+
+  async deleteSong(id: number): Promise<boolean> {
+    // Also remove from any playlists
+    Array.from(this.playlistSongs.values())
+      .filter(ps => ps.songId === id)
+      .forEach(ps => this.playlistSongs.delete(ps.id));
+    
+    return this.songs.delete(id);
+  }
+
+  // Playlist methods
+  async getPlaylist(id: number): Promise<Playlist | undefined> {
+    return this.playlists.get(id);
+  }
+
+  async getPlaylistsByUser(userId: number): Promise<Playlist[]> {
+    return Array.from(this.playlists.values()).filter(
+      (playlist) => playlist.userId === userId,
+    );
+  }
+
+  async createPlaylist(playlist: Omit<Playlist, "id" | "createdAt">): Promise<Playlist> {
+    const id = this.playlistIdCounter++;
+    const now = new Date();
+    const newPlaylist: Playlist = { ...playlist, id, createdAt: now };
+    this.playlists.set(id, newPlaylist);
+    return newPlaylist;
+  }
+
+  async updatePlaylist(
+    id: number, 
+    updates: Partial<Omit<Playlist, "id" | "userId" | "createdAt">>
+  ): Promise<Playlist | undefined> {
+    const playlist = this.playlists.get(id);
+    if (!playlist) return undefined;
+    
+    const updatedPlaylist: Playlist = { ...playlist, ...updates };
+    this.playlists.set(id, updatedPlaylist);
+    return updatedPlaylist;
+  }
+
+  async deletePlaylist(id: number): Promise<boolean> {
+    // Also remove all playlist songs
+    Array.from(this.playlistSongs.values())
+      .filter(ps => ps.playlistId === id)
+      .forEach(ps => this.playlistSongs.delete(ps.id));
+    
+    return this.playlists.delete(id);
+  }
+
+  // Playlist song methods
+  async getPlaylistSongs(playlistId: number): Promise<Song[]> {
+    const playlistSongRecords = Array.from(this.playlistSongs.values()).filter(
+      (ps) => ps.playlistId === playlistId,
+    );
+    
+    const songIds = playlistSongRecords.map(ps => ps.songId);
+    return Array.from(this.songs.values()).filter(song => songIds.includes(song.id));
+  }
+
+  async addSongToPlaylist(playlistId: number, songId: number): Promise<PlaylistSong> {
+    // Check if already in playlist
+    const existing = Array.from(this.playlistSongs.values()).find(
+      ps => ps.playlistId === playlistId && ps.songId === songId
+    );
+    
+    if (existing) return existing;
+    
+    const id = this.playlistSongIdCounter++;
+    const now = new Date();
+    const playlistSong: PlaylistSong = {
+      id,
+      playlistId,
+      songId,
+      addedAt: now,
+    };
+    
+    this.playlistSongs.set(id, playlistSong);
+    return playlistSong;
+  }
+
+  async removeSongFromPlaylist(playlistId: number, songId: number): Promise<boolean> {
+    const playlistSong = Array.from(this.playlistSongs.values()).find(
+      ps => ps.playlistId === playlistId && ps.songId === songId
+    );
+    
+    if (!playlistSong) return false;
+    return this.playlistSongs.delete(playlistSong.id);
+  }
+}
+
+export const storage = new MemStorage();

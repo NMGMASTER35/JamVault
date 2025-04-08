@@ -1,0 +1,38 @@
+import { Sidebar } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/top-bar";
+import { AudioPlayer } from "@/components/music/audio-player";
+import { MobileNav } from "@/components/layout/mobile-nav";
+import { UploadForm } from "@/components/music/upload-form";
+
+export default function UploadPage() {
+  return (
+    <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <Sidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto pb-32 relative">
+          {/* Top Bar */}
+          <TopBar />
+
+          {/* Page Content */}
+          <div className="p-6">
+            <div className="mb-6">
+              <h1 className="text-3xl font-bold">Upload Music</h1>
+              <p className="text-muted-foreground mt-2">Add MP3 files to your library</p>
+            </div>
+            
+            <UploadForm />
+          </div>
+        </main>
+      </div>
+
+      {/* Audio Player */}
+      <AudioPlayer />
+
+      {/* Mobile Navigation */}
+      <MobileNav />
+    </div>
+  );
+}
