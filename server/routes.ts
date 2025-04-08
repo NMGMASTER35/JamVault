@@ -337,6 +337,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password, ...safeUser } = user;
     return res.json(safeUser);
   });
+  
+  // User listening stats
+  app.get("/api/user/stats", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    const userId = req.user.id;
+    
+    try {
+      // Fetch user listening statistics from storage
+      const stats = await storage.getUserListeningStats(userId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user stats:", error);
+      res.status(500).send("Error fetching listening statistics");
+    }
+  });
 
   app.patch("/api/profile", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
