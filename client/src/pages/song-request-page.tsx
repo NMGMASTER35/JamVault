@@ -477,26 +477,28 @@ export default function SongRequestPage() {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="album"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Album (Optional)</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
-                            <AlbumIcon className="h-4 w-4 text-neutral-400" />
-                            <Input 
-                              placeholder="Enter album name" 
-                              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                              {...field} 
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {form.watch("requestType") === "song" && (
+                    <FormField
+                      control={form.control}
+                      name="album"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Album (Optional)</FormLabel>
+                          <FormControl>
+                            <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
+                              <AlbumIcon className="h-4 w-4 text-neutral-400" />
+                              <Input 
+                                placeholder="Enter album name" 
+                                className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                                {...field} 
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <div className="grid grid-cols-2 gap-4">
                     <FormField

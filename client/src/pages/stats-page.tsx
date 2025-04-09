@@ -116,6 +116,11 @@ export default function StatsPage() {
     alert("Your shareable playlist has been created! You can now share it with your friends.");
   };
 
+  const handleShareStats = () => {
+    // Implement logic to share stats summary
+    alert("Your stats summary has been shared!");
+  };
+
   if (isLoading) {
     return (
       <div className="container py-10 max-w-6xl mx-auto px-4 md:px-6">
@@ -272,12 +277,21 @@ export default function StatsPage() {
               <CardDescription>Generate a playlist based on your top tracks</CardDescription>
             </CardHeader>
             <CardContent>
+            <div className="space-y-2">
               <Button 
                 onClick={generateShareablePlaylist}
                 className="w-full"
               >
                 Create "My Top Tracks" Playlist
               </Button>
+              <Button 
+                onClick={handleShareStats}
+                variant="outline"
+                className="w-full"
+              >
+                Share Stats Summary
+              </Button>
+            </div>
             </CardContent>
           </Card>
         </TabsContent>

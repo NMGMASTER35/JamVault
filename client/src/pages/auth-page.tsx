@@ -9,8 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Loader2, Music2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
+
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
@@ -30,8 +32,45 @@ export default function AuthPage() {
     defaultValues: {
       username: "",
       password: "",
+      email: "",
     },
   });
+
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  const handleResetPassword = async () => {
+    if (!resetEmail) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/password-reset/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resetEmail })
+      });
+
+      if (res.ok) {
+        toast({
+          title: "Success",
+          description: "Password reset instructions have been sent to your email"
+        });
+        setShowResetPassword(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to request password reset",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Register form
   const registerForm = useForm<z.infer<typeof insertUserSchema>>({
@@ -53,7 +92,7 @@ export default function AuthPage() {
     registerMutation.mutate(values);
   };
 
-  
+
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -82,18 +121,17 @@ export default function AuthPage() {
                     >
                       <FormField
                         control={loginForm.control}
-                        name="username"
+                        name="email"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Username</FormLabel>
+                            <FormLabel>Email</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your username" {...field} />
+                              <Input placeholder="Enter your email" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-
                       <FormField
                         control={loginForm.control}
                         name="password"
@@ -122,6 +160,16 @@ export default function AuthPage() {
                         ) : null}
                         Login
                       </Button>
+                      {!showResetPassword && (
+                        <Button variant="link" onClick={() => setShowResetPassword(true)}>Forgot Password?</Button>
+                      )}
+                      {showResetPassword && (
+                        <>
+                          <Input type="email" placeholder="Enter your email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
+                          <Button onClick={handleResetPassword}>Reset Password</Button>
+                          <Button variant="link" onClick={() => setShowResetPassword(false)}>Cancel</Button>
+                        </>
+                      )}
                     </form>
                   </Form>
                 </CardContent>

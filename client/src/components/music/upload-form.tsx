@@ -273,7 +273,7 @@ export function UploadForm() {
   };
 
   // Handle cover image selection
-  const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -303,13 +303,30 @@ export function UploadForm() {
     // Set cover upload state
     setCoverUpload({ file, preview });
 
-    // Convert the image to base64 for submission
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      form.setValue('cover', base64);
-    };
-    reader.readAsDataURL(file);
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        form.setValue('cover', data.url);
+      } else {
+        toast({
+          title: "Cover upload failed",
+          description: 'Error uploading cover image',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Cover upload failed",
+        description: 'Error uploading cover image',
+        variant: 'destructive'
+      })
+    }
   };
 
   // Clear cover image
