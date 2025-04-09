@@ -1,6 +1,18 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
+
+// Add global type declaration for remote tokens
+declare global {
+  var __remote_tokens: {
+    [key: string]: {
+      userId: number;
+      username: string;
+      expires: number;
+    }
+  };
+}
 import { storage } from "./storage";
 import { setupUpload } from "./multer";
 import fs from "fs";
@@ -821,7 +833,292 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Remote control music system via WebSocket
+  app.get("/api/remote-control/info", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    // Return the necessary info to connect to this server remotely
+    // This includes the server IP, a temporary token, and user info
+    const token = Math.random().toString(36).substring(2, 15);
+    
+    // Store the token for verification when WebSocket connects
+    // In a real system, you'd store this in Redis or a proper session store with expiry
+    if (!global.__remote_tokens) {
+      global.__remote_tokens = {};
+    }
+    
+    global.__remote_tokens[token] = {
+      userId: req.user.id,
+      username: req.user.username,
+      expires: Date.now() + (30 * 60 * 1000) // 30 minutes
+    };
+
+    return res.json({
+      token,
+      userId: req.user.id,
+      username: req.user.username,
+      // Include WebSocket path and server location
+      wsPath: '/ws',
+      host: req.headers.host
+    });
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
+  
+  // Set up WebSocket server for remote control
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Connected playback devices that can be controlled
+  const connectedDevices = new Map();
+  
+  // Connected remote controllers
+  const remoteControllers = new Map();
+
+  // Set of active user sessions
+  const userSessions = new Map();
+  
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket client connected');
+    
+    // Initialize connection state
+    let userId = null;
+    let deviceId = null;
+    let isController = false;
+    let isPlayer = false;
+    let token = null;
+    
+    // Handle messages
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        // Handle authentication
+        if (data.type === 'auth') {
+          // Validate the token
+          if (data.token && global.__remote_tokens && global.__remote_tokens[data.token]) {
+            const tokenData = global.__remote_tokens[data.token];
+            
+            // Check if token is expired
+            if (tokenData.expires < Date.now()) {
+              ws.send(JSON.stringify({
+                type: 'auth_error',
+                message: 'Token expired'
+              }));
+              return;
+            }
+            
+            userId = tokenData.userId;
+            token = data.token;
+            
+            // Check if this is a playback device or a controller
+            if (data.deviceType === 'player') {
+              isPlayer = true;
+              deviceId = `player-${userId}-${Date.now()}`;
+              connectedDevices.set(deviceId, {
+                ws,
+                userId,
+                name: data.deviceName || 'Unknown Device',
+                currentSong: null,
+                isPlaying: false,
+                volume: 100,
+                timestamp: Date.now()
+              });
+              
+              // Add this device to user's session
+              if (!userSessions.has(userId)) {
+                userSessions.set(userId, { 
+                  players: new Set(), 
+                  controllers: new Set() 
+                });
+              }
+              userSessions.get(userId).players.add(deviceId);
+              
+              // Send confirmation
+              ws.send(JSON.stringify({
+                type: 'auth_success',
+                deviceId,
+                message: 'Player registered successfully'
+              }));
+              
+              // Notify all controllers for this user about the new player
+              broadcastToUserControllers(userId, {
+                type: 'player_connected',
+                deviceId,
+                name: data.deviceName || 'Unknown Device'
+              });
+            }
+            else if (data.deviceType === 'controller') {
+              isController = true;
+              deviceId = `controller-${userId}-${Date.now()}`;
+              remoteControllers.set(deviceId, {
+                ws,
+                userId,
+                name: data.deviceName || 'Remote Control',
+                timestamp: Date.now()
+              });
+              
+              // Add this controller to user's session
+              if (!userSessions.has(userId)) {
+                userSessions.set(userId, { 
+                  players: new Set(), 
+                  controllers: new Set() 
+                });
+              }
+              userSessions.get(userId).controllers.add(deviceId);
+              
+              // Send confirmation
+              ws.send(JSON.stringify({
+                type: 'auth_success',
+                deviceId,
+                message: 'Controller registered successfully'
+              }));
+              
+              // Send list of available players to the controller
+              const availablePlayers = [];
+              if (userSessions.has(userId)) {
+                for (const playerId of userSessions.get(userId).players) {
+                  const player = connectedDevices.get(playerId);
+                  if (player) {
+                    availablePlayers.push({
+                      deviceId: playerId,
+                      name: player.name,
+                      currentSong: player.currentSong,
+                      isPlaying: player.isPlaying,
+                      volume: player.volume
+                    });
+                  }
+                }
+              }
+              
+              ws.send(JSON.stringify({
+                type: 'available_players',
+                players: availablePlayers
+              }));
+            }
+          } else {
+            ws.send(JSON.stringify({
+              type: 'auth_error',
+              message: 'Invalid token'
+            }));
+          }
+        }
+        // Handle controller commands
+        else if (isController && data.type === 'command') {
+          // Forward command to the specified device
+          if (data.targetDeviceId && connectedDevices.has(data.targetDeviceId)) {
+            // Check if the target device belongs to this user
+            const targetDevice = connectedDevices.get(data.targetDeviceId);
+            if (targetDevice.userId === userId) {
+              // Forward the command
+              targetDevice.ws.send(JSON.stringify({
+                type: 'command',
+                action: data.action,
+                params: data.params
+              }));
+            }
+          }
+        }
+        // Handle player status updates
+        else if (isPlayer && data.type === 'status_update') {
+          // Update the player's status
+          if (connectedDevices.has(deviceId)) {
+            const device = connectedDevices.get(deviceId);
+            device.currentSong = data.currentSong || device.currentSong;
+            device.isPlaying = data.isPlaying !== undefined ? data.isPlaying : device.isPlaying;
+            device.volume = data.volume !== undefined ? data.volume : device.volume;
+            
+            // Broadcast the status update to all controllers for this user
+            broadcastToUserControllers(userId, {
+              type: 'player_status',
+              deviceId,
+              name: device.name,
+              currentSong: device.currentSong,
+              isPlaying: device.isPlaying,
+              volume: device.volume
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error processing WebSocket message:', err);
+      }
+    });
+    
+    // Handle disconnection
+    ws.on('close', () => {
+      if (isPlayer && deviceId) {
+        // Remove from connected devices
+        connectedDevices.delete(deviceId);
+        
+        // Remove from user session
+        if (userId && userSessions.has(userId)) {
+          userSessions.get(userId).players.delete(deviceId);
+          
+          // Notify controllers
+          broadcastToUserControllers(userId, {
+            type: 'player_disconnected',
+            deviceId
+          });
+        }
+      }
+      else if (isController && deviceId) {
+        // Remove from controllers
+        remoteControllers.delete(deviceId);
+        
+        // Remove from user session
+        if (userId && userSessions.has(userId)) {
+          userSessions.get(userId).controllers.delete(deviceId);
+        }
+      }
+      
+      // Cleanup token if it was the last connection using it
+      if (token && userId) {
+        let otherConnections = false;
+        
+        // Check if there are other connections using this token
+        if (userSessions.has(userId)) {
+          const userSession = userSessions.get(userId);
+          
+          // Check each player
+          for (const playerId of userSession.players) {
+            const device = connectedDevices.get(playerId);
+            if (device && device.token === token) {
+              otherConnections = true;
+              break;
+            }
+          }
+          
+          // Check each controller
+          if (!otherConnections) {
+            for (const controllerId of userSession.controllers) {
+              const controller = remoteControllers.get(controllerId);
+              if (controller && controller.token === token) {
+                otherConnections = true;
+                break;
+              }
+            }
+          }
+        }
+        
+        // Remove token if no other connections are using it
+        if (!otherConnections && global.__remote_tokens && global.__remote_tokens[token]) {
+          delete global.__remote_tokens[token];
+        }
+      }
+    });
+  });
+  
+  // Helper function to broadcast to all controllers for a specific user
+  function broadcastToUserControllers(userId, message) {
+    if (userSessions.has(userId)) {
+      for (const controllerId of userSessions.get(userId).controllers) {
+        const controller = remoteControllers.get(controllerId);
+        if (controller && controller.ws.readyState === WebSocket.OPEN) {
+          controller.ws.send(JSON.stringify(message));
+        }
+      }
+    }
+  }
+  
   return httpServer;
 }

@@ -13,15 +13,20 @@ import {
   Download,
   ListMusic,
   Mic,
-  FileText
+  FileText,
+  Smartphone
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAudio } from "@/lib/audioContext";
 import { Waveform } from "@/components/music/waveform";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 export function AudioPlayer() {
   const [showLyrics, setShowLyrics] = useState(false);
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const {
     currentSong,
     isPlaying,
@@ -38,6 +43,96 @@ export function AudioPlayer() {
     toggleShuffle,
     toggleRepeat,
   } = useAudio();
+  
+  // Handle remote control commands
+  useEffect(() => {
+    const handleRemoteControl = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { action, params } = customEvent.detail;
+      
+      console.log('Remote control command received:', action, params);
+      
+      // Display toast to show remote control is being used
+      toast({
+        title: 'Remote Control',
+        description: `Command: ${action}`,
+        duration: 2000,
+      });
+      
+      switch (action) {
+        case 'play':
+          if (!isPlaying) togglePlayPause();
+          break;
+        case 'pause':
+          if (isPlaying) togglePlayPause();
+          break;
+        case 'next':
+          nextSong();
+          break;
+        case 'previous':
+          prevSong();
+          break;
+        case 'volume':
+          if (params && typeof params.level === 'number') {
+            setVolume(params.level / 100);
+            
+            // Dispatch volume change event for remote controller
+            window.dispatchEvent(
+              new CustomEvent('audio-volume-change', { 
+                detail: { volume: params.level } 
+              })
+            );
+          }
+          break;
+        case 'seek':
+          if (params && typeof params.position === 'number') {
+            seekTo(params.position);
+          }
+          break;
+        case 'shuffle':
+          toggleShuffle();
+          break;
+        case 'repeat':
+          toggleRepeat();
+          break;
+        default:
+          console.log('Unknown remote control command:', action);
+      }
+    };
+    
+    // Listen for remote control events
+    window.addEventListener('remote-control', handleRemoteControl as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('remote-control', handleRemoteControl as EventListener);
+    };
+  }, [togglePlayPause, nextSong, prevSong, setVolume, seekTo, isPlaying, toggleShuffle, toggleRepeat, toast]);
+  
+  // Dispatch play state changes for remote controller
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent('audio-play-state-change', { 
+        detail: { isPlaying } 
+      })
+    );
+  }, [isPlaying]);
+  
+  // Dispatch song changes for remote controller
+  useEffect(() => {
+    if (currentSong) {
+      window.dispatchEvent(
+        new CustomEvent('audio-song-change', { 
+          detail: {
+            id: currentSong.id,
+            title: currentSong.title,
+            artist: currentSong.artist,
+            duration: duration
+          }
+        })
+      );
+    }
+  }, [currentSong, duration]);
 
   // Convert seconds to mm:ss format
   const formatTime = (seconds: number) => {
@@ -220,8 +315,10 @@ export function AudioPlayer() {
               variant="ghost"
               size="icon"
               className="hidden sm:flex text-muted-foreground hover:text-foreground"
+              onClick={() => setLocation('/remote-player')}
+              title="Remote Control"
             >
-              <ListMusic className="h-5 w-5" />
+              <Smartphone className="h-5 w-5" />
             </Button>
             
             <Button
