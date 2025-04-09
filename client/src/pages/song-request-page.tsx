@@ -420,7 +420,7 @@ export default function SongRequestPage() {
                       <FormItem>
                         <FormLabel>Request Type</FormLabel>
                         <FormControl>
-                          <Select {...field}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select request type" />
                             </SelectTrigger>
