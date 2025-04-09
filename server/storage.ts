@@ -412,15 +412,34 @@ export class MemStorage implements IStorage {
   async createSong(song: Omit<Song, "id" | "uploadedAt">): Promise<Song> {
     const id = this.songIdCounter++;
     const now = new Date();
+    
+    // Get artist name for barcode generation
+    let artistName = song.artist;
+    if (song.artistId) {
+      const artist = await this.getArtist(song.artistId);
+      if (artist) {
+        artistName = artist.name;
+      }
+    }
+    
+    // Import barcode generator
+    const { generateSongBarcode } = await import('./utils/barcodeGenerator');
+    
+    // Generate a unique barcode for the song
+    const barcode = generateSongBarcode(song.title, artistName);
+    
     const newSong: Song = { 
       ...song, 
       id, 
       uploadedAt: now,
       playCount: song.playCount || 0,
-      artistId: song.artistId || null,
+      artistId: song.artistId,
+      featuredArtists: song.featuredArtists || [],
+      albumId: song.albumId || null,
       genre: song.genre || null,
       year: song.year || null,
-      lyrics: song.lyrics || null
+      lyrics: song.lyrics || null,
+      barcode: song.barcode || barcode // Use provided barcode or generate one
     };
     this.songs.set(id, newSong);
     return newSong;

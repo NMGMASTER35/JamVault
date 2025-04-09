@@ -28,7 +28,8 @@ import {
   updateProfileSchema,
   passwordSchema,
   insertShortLinkSchema,
-  insertAlbumSchema
+  insertAlbumSchema,
+  insertArtistSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -67,24 +68,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can upload songs");
     if (!req.file) return res.status(400).send("No file uploaded");
     
-    const { title, artist, album, duration, cover, genre, year, lyrics } = req.body;
+    const { 
+      title, 
+      artist, 
+      artistId, 
+      featuredArtists, 
+      album, 
+      albumId, 
+      duration, 
+      cover, 
+      genre, 
+      year, 
+      lyrics 
+    } = req.body;
     
-    const song = await storage.createSong({
-      title,
-      artist,
-      album: album || null,
-      duration: parseInt(duration),
-      cover: cover || null,
-      filePath: req.file.path,
-      userId: req.user.id,
-      genre: genre || null,
-      year: year ? parseInt(year) : null,
-      lyrics: lyrics || null,
-      artistId: null, // For now, we're not linking to artist records
-      playCount: 0,
-    });
+    // Validate artistId exists if provided
+    if (artistId) {
+      const artistExists = await storage.getArtist(parseInt(artistId));
+      if (!artistExists) {
+        return res.status(400).send("Artist with provided ID does not exist");
+      }
+    }
     
-    return res.status(201).json(song);
+    // Parse featured artists array if provided
+    let parsedFeaturedArtists: number[] = [];
+    if (featuredArtists) {
+      try {
+        // Check if it's a JSON string or already an array
+        parsedFeaturedArtists = typeof featuredArtists === 'string' 
+          ? JSON.parse(featuredArtists) 
+          : featuredArtists;
+          
+        // Validate each featured artist ID exists
+        for (const fArtistId of parsedFeaturedArtists) {
+          const artistExists = await storage.getArtist(parseInt(fArtistId));
+          if (!artistExists) {
+            return res.status(400).send(`Featured artist with ID ${fArtistId} does not exist`);
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing featured artists:", error);
+        return res.status(400).send("Invalid featured artists format");
+      }
+    }
+    
+    // Import barcode generator (will be used automatically in storage.createSong)
+    try {
+      const song = await storage.createSong({
+        title,
+        artist,
+        artistId: artistId ? parseInt(artistId) : null,
+        featuredArtists: parsedFeaturedArtists,
+        album: album || null,
+        albumId: albumId ? parseInt(albumId) : null,
+        duration: parseInt(duration),
+        cover: cover || null,
+        filePath: req.file.path,
+        userId: req.user.id,
+        genre: genre || null,
+        year: year ? parseInt(year) : null,
+        lyrics: lyrics || null,
+        playCount: 0,
+      });
+      
+      return res.status(201).json(song);
+    } catch (error) {
+      console.error("Error creating song:", error);
+      return res.status(500).send("Failed to create song");
+    }
   });
   
   app.delete("/api/songs/:id", async (req: Request, res: Response) => {
@@ -524,6 +575,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error deleting album");
     }
   });
+  
+  // Artist routes
+  app.get("/api/artists", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const artists = await storage.getAllArtists();
+      return res.json(artists);
+    } catch (error) {
+      console.error("Error fetching artists:", error);
+      return res.status(500).send("Error fetching artists");
+    }
+  });
+  
+  app.get("/api/artists/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const artistId = parseInt(req.params.id);
+      const artist = await storage.getArtist(artistId);
+      
+      if (!artist) {
+        return res.status(404).send("Artist not found");
+      }
+      
+      return res.json(artist);
+    } catch (error) {
+      console.error("Error fetching artist:", error);
+      return res.status(500).send("Error fetching artist");
+    }
+  });
+  
+  app.get("/api/artists/:id/songs", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    
+    try {
+      const artistId = parseInt(req.params.id);
+      const songs = await storage.getSongsByArtist(artistId);
+      return res.json(songs);
+    } catch (error) {
+      console.error("Error fetching artist songs:", error);
+      return res.status(500).send("Error fetching artist songs");
+    }
+  });
+  
+  app.post("/api/artists", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can create artists");
+    
+    try {
+      const validatedData = insertArtistSchema.parse(req.body);
+      const artist = await storage.createArtist(validatedData);
+      return res.status(201).json(artist);
+    } catch (error) {
+      console.error("Error creating artist:", error);
+      return res.status(400).json({ error: "Invalid artist data" });
+    }
+  });
+  
+  app.patch("/api/artists/:id", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.user.isAdmin) return res.status(403).send("Only administrators can update artists");
+    
+    try {
+      const artistId = parseInt(req.params.id);
+      const artist = await storage.getArtist(artistId);
+      
+      if (!artist) {
+        return res.status(404).send("Artist not found");
+      }
+      
+      const updatedArtist = await storage.updateArtist(artistId, req.body);
+      return res.json(updatedArtist);
+    } catch (error) {
+      console.error("Error updating artist:", error);
+      return res.status(500).send("Error updating artist");
+    }
+  });
 
   // User profile routes
   app.get("/api/profile", async (req: Request, res: Response) => {
@@ -684,8 +813,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     
     try {
+      // Check if featured artists is provided
+      let featuredArtists = [];
+      if (req.body.featuredArtists) {
+        try {
+          // Parse if it's a string, otherwise use the array directly
+          featuredArtists = typeof req.body.featuredArtists === 'string'
+            ? JSON.parse(req.body.featuredArtists)
+            : req.body.featuredArtists;
+        } catch (e) {
+          console.error("Error parsing featured artists:", e);
+          return res.status(400).json({ error: "Invalid featured artists format" });
+        }
+      }
+      
       const validatedData = insertSongRequestSchema.parse({
         ...req.body,
+        featuredArtists,
         userId: req.user.id
       });
       
@@ -693,6 +837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(201).json(request);
       
     } catch (error) {
+      console.error("Error creating song request:", error);
       return res.status(400).json({ error: "Invalid song request data" });
     }
   });

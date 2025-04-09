@@ -27,6 +27,7 @@ import {
   History,
   ListMusic,
   Radio,
+  Mic2,
 } from "lucide-react";
 
 export function Sidebar() {
@@ -135,6 +136,23 @@ export function Sidebar() {
         </div>
       </div>
       
+      {/* Artists Section */}
+      <div className="px-4 py-2 border-t border-border">
+        <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Artists</h3>
+        <div className="space-y-1">
+          <Link href="/search?type=artists">
+            <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+              location === "/search?type=artists" 
+                ? "bg-primary text-white font-medium" 
+                : "text-foreground/80 nav-item"
+            }`}>
+              <Mic2 className="h-5 w-5" />
+              <span>Browse Artists</span>
+            </a>
+          </Link>
+        </div>
+      </div>
+      
       {/* Features Section */}
       <div className="px-4 py-2 mt-2 border-t border-border">
         <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Features</h3>
@@ -173,16 +191,28 @@ export function Sidebar() {
           </Link>
           
           {user?.isAdmin && (
-            <Link href="/upload">
-              <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-                location === "/upload" 
-                  ? "bg-primary text-white font-medium" 
-                  : "text-foreground/80 nav-item"
-              }`}>
-                <Upload className="h-5 w-5" />
-                <span>Upload Music</span>
-              </a>
-            </Link>
+            <>
+              <Link href="/upload">
+                <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                  location === "/upload" 
+                    ? "bg-primary text-white font-medium" 
+                    : "text-foreground/80 nav-item"
+                }`}>
+                  <Upload className="h-5 w-5" />
+                  <span>Upload Music</span>
+                </a>
+              </Link>
+              <Link href="/artists/manage">
+                <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                  location === "/artists/manage" 
+                    ? "bg-primary text-white font-medium" 
+                    : "text-foreground/80 nav-item"
+                }`}>
+                  <Mic2 className="h-5 w-5" />
+                  <span>Manage Artists</span>
+                </a>
+              </Link>
+            </>
           )}
         </div>
       </div>

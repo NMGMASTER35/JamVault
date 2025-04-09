@@ -51,9 +51,11 @@ export const albums = pgTable("albums", {
 export const songs = pgTable("songs", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  artist: text("artist").notNull(),
-  artistId: integer("artist_id"),
+  artist: text("artist").notNull(), // Keep for backwards compatibility
+  artistId: integer("artist_id").notNull(), // Main artist ID reference
+  featuredArtists: integer("featured_artists").array(), // Array of featured artist IDs
   album: text("album"),
+  albumId: integer("album_id"), // Album ID reference
   genre: text("genre"),
   year: integer("year"),
   duration: integer("duration").notNull(), // in seconds
@@ -63,6 +65,7 @@ export const songs = pgTable("songs", {
   userId: integer("user_id").notNull(),
   playCount: integer("play_count").default(0),
   uploadedAt: timestamp("uploaded_at").defaultNow(),
+  barcode: text("barcode").unique(), // Unique song identifier/barcode
 });
 
 export const playlists = pgTable("playlists", {
@@ -120,7 +123,9 @@ export const games = pgTable("games", {
 export const songRequests = pgTable("song_requests", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  artist: text("artist").notNull(),
+  artist: text("artist").notNull(), // Main artist name
+  artistId: integer("artist_id"), // Main artist ID (if known)
+  featuredArtists: text("featured_artists").array(), // Featured artist names
   album: text("album"),
   year: integer("year"),
   cover: text("cover"),

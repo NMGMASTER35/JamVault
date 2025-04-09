@@ -31,9 +31,18 @@ export default function UploadPage() {
                 Back
               </Button>
             </div>
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold">Upload Music</h1>
-              <p className="text-muted-foreground mt-2">Add MP3 files to your library</p>
+            <div className="mb-6 flex justify-between items-end">
+              <div>
+                <h1 className="text-3xl font-bold">Upload Music</h1>
+                <p className="text-muted-foreground mt-2">Add MP3 files to your library</p>
+              </div>
+              <Button 
+                onClick={() => navigate('/artists/manage')}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                Manage Artists
+              </Button>
             </div>
             
             <UploadForm />
