@@ -65,26 +65,28 @@ export function ThemeSwitcher() {
   
   // Apply theme to document and save to localStorage
   const applyTheme = (selectedTheme: ThemeType) => {
-    const themeConfig = THEMES[selectedTheme];
-    
-    // Set theme mode (light/dark)
-    if (themeConfig.mode === "light") {
-      document.documentElement.classList.remove("dark");
-    } else {
-      document.documentElement.classList.add("dark");
-    }
-    
-    // Apply primary color to CSS variables
-    document.documentElement.style.setProperty("--theme-primary", themeConfig.primary);
-    
-    // Generate various shades for the theme color
-    const color = themeConfig.primary;
-    document.documentElement.style.setProperty("--theme-primary-light", adjustColorLightness(color, 15));
-    document.documentElement.style.setProperty("--theme-primary-dark", adjustColorLightness(color, -15));
-    document.documentElement.style.setProperty("--theme-primary-foreground", getContrastColor(color));
-    
-    // Save theme preference
-    localStorage.setItem(THEME_KEY, selectedTheme);
+    requestAnimationFrame(() => {
+      const themeConfig = THEMES[selectedTheme];
+      
+      // Set theme mode (light/dark)
+      if (themeConfig.mode === "light") {
+        document.documentElement.classList.remove("dark");
+      } else {
+        document.documentElement.classList.add("dark");
+      }
+      
+      // Batch CSS variable updates
+      const style = document.documentElement.style;
+      const color = themeConfig.primary;
+      
+      style.setProperty("--theme-primary", color);
+      style.setProperty("--theme-primary-light", adjustColorLightness(color, 15));
+      style.setProperty("--theme-primary-dark", adjustColorLightness(color, -15));
+      style.setProperty("--theme-primary-foreground", getContrastColor(color));
+      
+      // Save theme preference
+      localStorage.setItem(THEME_KEY, selectedTheme);
+    });
   };
   
   // Helper function to adjust color lightness

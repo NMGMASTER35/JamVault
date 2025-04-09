@@ -17,8 +17,8 @@ export function MobileNav() {
   const { user } = useAuth();
   
   return (
-    <div className="md:hidden fixed bottom-[72px] left-4 right-4 z-50">
-      <Menubar className="w-full bg-black/95 backdrop-blur-sm border-neutral-800">
+    <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-2">
+      <Menubar className="w-full bg-background/95 backdrop-blur-sm border-border">
         <MenubarMenu>
           <MenubarTrigger className="w-full justify-between">
             <span className="flex items-center gap-2">

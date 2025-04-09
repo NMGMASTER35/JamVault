@@ -10,27 +10,27 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
-  
+
   :root {
     /* Theme variables that will be dynamically set */
     --theme-primary: #ff5555;
     --theme-primary-light: #ff7070;
     --theme-primary-dark: #e64545;
     --theme-primary-foreground: #ffffff;
-    
+
     /* Base colors for light mode */
     --background: 0 0% 98%;
-    --foreground: 0 0% 7%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 95%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 98%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 0 0% 0%;
     --primary: var(--theme-primary);
     --primary-foreground: var(--theme-primary-foreground);
     --secondary: 0 0% 92%;
-    --secondary-foreground: 0 0% 7%;
+    --secondary-foreground: 0 0% 0%;
     --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 40%;
+    --muted-foreground: 0 0% 25%;
     --accent: var(--theme-primary-light);
     --accent-foreground: var(--theme-primary-foreground);
     --destructive: 0 100% 50%;
@@ -40,7 +40,7 @@
     --ring: var(--theme-primary);
     --radius: 0.5rem;
   }
-  
+
   .dark {
     /* Dark mode colors */
     --background: 0 0% 7%;
@@ -69,91 +69,91 @@
   .gradient-text {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
   }
-  
+
   .nav-item {
     @apply transition-colors hover:text-primary hover:bg-primary/10 rounded-md;
   }
-  
+
   .btn-primary-glow {
     @apply bg-primary hover:bg-primary/90 text-primary-foreground shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/40;
   }
-  
+
   .card-hover {
     @apply transition-all border border-border hover:border-primary/50 bg-card hover:bg-card/90 hover:shadow-lg hover:shadow-primary/10;
   }
-  
+
   .layout-container {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
-  
+
   .ui-section {
     @apply p-6 rounded-lg bg-card shadow-sm border border-border;
   }
-  
+
   /* Theme specific utility classes */
   .bg-glass {
     @apply bg-background/80 backdrop-blur-sm border border-border;
   }
-  
+
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-accent;
   }
-  
+
   .bg-gradient-subtle {
     @apply bg-gradient-to-br from-background via-background to-muted/30;
   }
-  
+
   .card-gradient {
     @apply bg-gradient-to-br from-card via-card to-muted/50;
   }
-  
+
   .card-highlight {
     @apply border border-primary/20 shadow-sm shadow-primary/10 hover:shadow-md hover:shadow-primary/20 transition-shadow;
   }
-  
+
   /* Enhanced player styling */
   .player-controls {
     @apply flex items-center justify-center gap-2 md:gap-4;
   }
-  
+
   .player-button {
     @apply rounded-full transition-all hover:scale-110;
   }
-  
+
   .player-progress-bar {
     @apply h-1.5 rounded-full bg-muted overflow-hidden relative cursor-pointer group hover:h-2 transition-all;
   }
-  
+
   .player-progress-fill {
     @apply h-full bg-primary rounded-full relative transition-all duration-100;
   }
-  
+
   .player-progress-handle {
     @apply absolute rounded-full h-3 w-3 -mt-[5px] bg-primary shadow-sm opacity-0 group-hover:opacity-100 transition-opacity;
   }
-  
+
   /* Playlist styles */
   .playlist-card {
     @apply relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-md hover:shadow-primary/10 group;
   }
-  
+
   .playlist-card-image {
     @apply aspect-square w-full object-cover transition-transform group-hover:scale-105;
   }
-  
+
   .playlist-card-overlay {
     @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4;
   }
-  
+
   /* Weekly playlists specific styles */
   .weekly-playlist-badge {
     @apply absolute top-3 right-3 text-xs font-medium py-1 px-2 rounded-full bg-primary/90 text-primary-foreground;
   }
-  
+
   .visualizer-container {
     @apply relative overflow-hidden rounded-md;
   }
-  
+
   .visualizer-canvas {
     @apply w-full h-full;
   }
