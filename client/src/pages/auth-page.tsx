@@ -120,12 +120,12 @@ export default function AuthPage() {
                     >
                       <FormField
                         control={loginForm.control}
-                        name="emailOrUsername"
+                        name="username"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Email or Username</FormLabel>
+                            <FormLabel>Username</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter your email or username" {...field} />
+                              <Input placeholder="Enter your username" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
