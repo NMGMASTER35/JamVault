@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,15 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-const { toast } = useToast();
-import { Loader2, Music2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
+import { Loader2, Music2 } from "lucide-react";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [_, navigate] = useLocation();
+  const { toast } = useToast();
 
   // Redirect if user is already authenticated
   useEffect(() => {
@@ -92,8 +92,6 @@ export default function AuthPage() {
   const onRegisterSubmit = (values: z.infer<typeof insertUserSchema>) => {
     registerMutation.mutate(values);
   };
-
-
 
   return (
     <div className="flex min-h-screen bg-background">
