@@ -160,6 +160,37 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Recently Played */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Recently Played</h2>
+              </div>
+
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : hasError ? (
+                <div className="p-4 text-center text-destructive">
+                  Error loading recent plays. Please try again.
+                </div>
+              ) : recentSongs && recentSongs.length > 0 ? (
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                  {recentSongs.map((song) => (
+                    <SongCard 
+                      key={song.id} 
+                      song={song} 
+                      onClick={() => playSong(song)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No recently played songs. Start listening to see your history!
+                </div>
+              )}
+            </div>
+
             {/* Recently Added Songs */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">

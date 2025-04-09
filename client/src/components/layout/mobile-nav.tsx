@@ -67,11 +67,13 @@ export function MobileNav() {
                   Manage Albums
                 </DropdownMenuItem>
               </Link>
+            <Link href="/upload">
+                <DropdownMenuItem>
+                  <Upload className="h-5 w-5 mr-2" />
+                  Upload
+                </DropdownMenuItem>
+              </Link>
             </>
-                <Upload className="h-5 w-5 mr-2" />
-                Upload
-              </DropdownMenuItem>
-            </Link>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
