@@ -17,6 +17,9 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [_, navigate] = useLocation();
 
+  const { loginMutation, registerMutation } = useAuth();
+  const isLoading = loginMutation.isPending || registerMutation.isPending;
+
   // Redirect if user is already authenticated
   useEffect(() => {
     if (user && !isLoading) {
