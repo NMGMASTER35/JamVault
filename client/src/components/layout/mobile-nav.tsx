@@ -15,47 +15,47 @@ export function MobileNav() {
   const { user } = useAuth();
   
   return (
-    <div className="md:hidden fixed top-2 left-2 z-50">
+    <div className="md:hidden fixed top-4 left-4 z-50">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="bg-background/95 backdrop-blur-sm">
             <Menu className="h-5 w-5" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-sm border-border">
+        <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-sm">
           <Link href="/">
-            <DropdownMenuItem className={location === "/" ? "bg-primary/10" : ""}>
+            <DropdownMenuItem>
               <Home className="h-5 w-5 mr-2" />
               Home
             </DropdownMenuItem>
           </Link>
           <Link href="/search">
-            <DropdownMenuItem className={location === "/search" ? "bg-primary/10" : ""}>
+            <DropdownMenuItem>
               <Search className="h-5 w-5 mr-2" />
               Search
             </DropdownMenuItem>
           </Link>
           <Link href="/library">
-            <DropdownMenuItem className={location === "/library" ? "bg-primary/10" : ""}>
+            <DropdownMenuItem>
               <Library className="h-5 w-5 mr-2" />
               Library
             </DropdownMenuItem>
           </Link>
           <Link href="/song-request">
-            <DropdownMenuItem className={location === "/song-request" ? "bg-primary/10" : ""}>
+            <DropdownMenuItem>
               <MessageSquare className="h-5 w-5 mr-2" />
               Requests
             </DropdownMenuItem>
           </Link>
           <Link href="/profile">
-            <DropdownMenuItem className={location === "/profile" ? "bg-primary/10" : ""}>
+            <DropdownMenuItem>
               <UserCircle className="h-5 w-5 mr-2" />
               Profile
             </DropdownMenuItem>
           </Link>
           {user?.isAdmin && (
             <Link href="/upload">
-              <DropdownMenuItem className={location === "/upload" ? "bg-primary/10" : ""}>
+              <DropdownMenuItem>
                 <Upload className="h-5 w-5 mr-2" />
                 Upload
               </DropdownMenuItem>
