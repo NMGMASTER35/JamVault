@@ -54,8 +54,20 @@ export function MobileNav() {
             </DropdownMenuItem>
           </Link>
           {user?.isAdmin && (
-            <Link href="/upload">
-              <DropdownMenuItem>
+            <>
+              <Link href="/upload">
+                <DropdownMenuItem>
+                  <Upload className="h-5 w-5 mr-2" />
+                  Upload Music
+                </DropdownMenuItem>
+              </Link>
+              <Link href="/album-management">
+                <DropdownMenuItem>
+                  <AlbumIcon className="h-5 w-5 mr-2" />
+                  Manage Albums
+                </DropdownMenuItem>
+              </Link>
+            </>
                 <Upload className="h-5 w-5 mr-2" />
                 Upload
               </DropdownMenuItem>

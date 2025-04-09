@@ -76,9 +76,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
-  requestType: z.enum(['song', 'album']).refine((val) => val === 'song' || val === 'album', {
-    message: 'Please select a request type.',
-  }),
+  requestType: z.enum(['song', 'album']),
   title: z.string().min(1, { message: 'Title is required' }),
   artist: z.string().optional(),
   album: z.string().optional(),
