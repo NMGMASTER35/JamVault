@@ -14,6 +14,7 @@ import SongRequestPage from "@/pages/song-request-page";
 import StatsPage from "@/pages/stats-page";
 import RemotePlayerPage from "@/pages/remote-player-page";
 import RemoteControlPage from "@/pages/remote-control-page";
+import VisualizerPage from "@/pages/visualizer-page";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AudioProvider } from "@/lib/audioContext";
@@ -33,6 +34,7 @@ function Router() {
       <ProtectedRoute path="/stats" component={StatsPage} />
       <ProtectedRoute path="/remote-player" component={RemotePlayerPage} />
       <ProtectedRoute path="/remote-control" component={RemoteControlPage} />
+      <ProtectedRoute path="/visualizer" component={VisualizerPage} />
       <Route component={NotFound} />
     </Switch>
   );

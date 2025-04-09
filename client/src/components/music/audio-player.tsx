@@ -4,23 +4,28 @@ import { Slider } from "@/components/ui/slider";
 import {
   Play, Pause, SkipBack, SkipForward, Repeat, Shuffle,
   Volume2, VolumeX, Heart, Download, ListMusic, Mic,
-  FileText, Maximize2, Minimize2, Share2
+  FileText, Maximize2, Minimize2, Share2, ZapIcon, 
+  BarChart2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAudio } from "@/lib/audioContext";
 import { Waveform } from "@/components/music/waveform";
+import { AudioVisualizer } from "@/components/music/audio-visualizer";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { io } from "socket.io-client";
+import { useLocation } from "wouter";
 
 export function AudioPlayer() {
   const [expanded, setExpanded] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [showQueue, setShowQueue] = useState(false);
+  const [showVisualizer, setShowVisualizer] = useState(false);
   const [deviceId] = useState(() => crypto.randomUUID());
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   const {
     currentSong,
@@ -194,7 +199,19 @@ export function AudioPlayer() {
                 <div className="flex-grow relative">
                   {currentSong && (
                     <>
-                      <Waveform isActive={isPlaying} className="mb-1" />
+                      <div className="relative h-8 mb-1">
+                        <Waveform isActive={isPlaying} className="absolute inset-0 z-0" />
+                        {isPlaying && (
+                          <div className="absolute inset-0 z-10 opacity-60">
+                            <AudioVisualizer 
+                              barCount={50} 
+                              barColor="rgb(255, 0, 64)" 
+                              barSpacing={2}
+                              barRadius={1}
+                            />
+                          </div>
+                        )}
+                      </div>
                       <Slider
                         value={[progress]}
                         max={duration || 100}
@@ -212,13 +229,14 @@ export function AudioPlayer() {
               </div>
             </div>
             
-            <div className="w-1/4 min-w-[140px] flex items-center justify-end gap-3">
+            <div className="w-1/4 min-w-[160px] flex items-center justify-end gap-2">
               <Button
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => setShowLyrics(true)}
                 disabled={!currentSong}
+                title="Lyrics"
               >
                 <FileText className="h-5 w-5" />
               </Button>
@@ -228,6 +246,7 @@ export function AudioPlayer() {
                 size="icon"
                 className="text-muted-foreground hover:text-foreground"
                 onClick={() => setShowQueue(true)}
+                title="Queue"
               >
                 <ListMusic className="h-5 w-5" />
               </Button>
@@ -236,7 +255,19 @@ export function AudioPlayer() {
                 variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-foreground"
+                onClick={() => setLocation('/visualizer')}
+                disabled={!currentSong}
+                title="Music Visualizer"
+              >
+                <BarChart2 className="h-5 w-5" />
+              </Button>
+              
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-foreground"
                 onClick={handleShareDevice}
+                title="Remote Control"
               >
                 <Share2 className="h-5 w-5" />
               </Button>
@@ -249,16 +280,37 @@ export function AudioPlayer() {
       <Dialog open={expanded} onOpenChange={setExpanded}>
         <DialogContent className="max-w-3xl">
           <div className="flex flex-col items-center p-6 space-y-6">
-            <div className="w-64 h-64 rounded-lg overflow-hidden">
+            <div className="w-64 h-64 rounded-lg overflow-hidden relative">
               {currentSong?.cover ? (
-                <img
-                  src={currentSong.cover}
-                  alt={`${currentSong.title} cover`}
-                  className="w-full h-full object-cover"
-                />
+                <>
+                  <img
+                    src={currentSong.cover}
+                    alt={`${currentSong.title} cover`}
+                    className="w-full h-full object-cover"
+                  />
+                  {isPlaying && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300">
+                      <AudioVisualizer 
+                        barCount={32} 
+                        barColor="rgb(255, 255, 255)"
+                        barSpacing={3}
+                        barRadius={2}
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="w-full h-full bg-accent flex items-center justify-center">
-                  <ListMusic className="h-16 w-16 text-muted-foreground" />
+                  {isPlaying ? (
+                    <AudioVisualizer 
+                      barCount={32} 
+                      barColor="rgb(255, 0, 64)"
+                      barSpacing={3}
+                      barRadius={2}
+                    />
+                  ) : (
+                    <ListMusic className="h-16 w-16 text-muted-foreground" />
+                  )}
                 </div>
               )}
             </div>
@@ -270,7 +322,98 @@ export function AudioPlayer() {
             
             {/* Player controls from mini player */}
             <div className="w-full max-w-md">
-              {/* ... same controls as mini player ... */}
+              <div className="flex items-center justify-center gap-4 mb-6">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={isShuffle ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                  onClick={toggleShuffle}
+                  disabled={!currentSong}
+                >
+                  <Shuffle className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={prevSong}
+                  disabled={!currentSong}
+                >
+                  <SkipBack className="h-6 w-6" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="w-12 h-12 rounded-full bg-white text-black hover:scale-105 transition-transform"
+                  onClick={togglePlayPause}
+                  disabled={!currentSong}
+                >
+                  {isPlaying ? (
+                    <Pause className="h-6 w-6" />
+                  ) : (
+                    <Play className="h-6 w-6" />
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={nextSong}
+                  disabled={!currentSong}
+                >
+                  <SkipForward className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={isRepeat ? "text-primary" : "text-muted-foreground hover:text-foreground"}
+                  onClick={toggleRepeat}
+                  disabled={!currentSong}
+                >
+                  <Repeat className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="w-full flex items-center gap-2 mb-4">
+                <span className="text-xs text-muted-foreground w-10 text-right">
+                  {formatTime(progress)}
+                </span>
+                <div className="flex-grow">
+                  <Slider
+                    value={[progress]}
+                    max={duration || 100}
+                    step={1}
+                    onValueChange={handleSeek}
+                    disabled={!currentSong}
+                    className="cursor-pointer"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground w-10">
+                  {formatTime(duration || 0)}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setLocation('/visualizer')}
+                  disabled={!currentSong}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  <span>Full Visualizer</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={handleDownload}
+                  disabled={!currentSong}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Download</span>
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

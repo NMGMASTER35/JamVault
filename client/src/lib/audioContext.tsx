@@ -11,6 +11,7 @@ type AudioContextType = {
   isShuffle: boolean;
   isRepeat: boolean;
   queue: Song[];
+  howlInstance: Howl | null;
   playSong: (song: Song) => void;
   playPlaylist: (songs: Song[], startIndex?: number) => void;
   togglePlayPause: () => void;
@@ -213,6 +214,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         isShuffle,
         isRepeat,
         queue,
+        howlInstance: howl.current,
         playSong,
         playPlaylist,
         togglePlayPause,
