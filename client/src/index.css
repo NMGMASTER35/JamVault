@@ -12,7 +12,11 @@
   }
   
   :root {
-    --primary: #ff5555;
+    /* Theme variables that will be dynamically set */
+    --theme-primary: #ff5555;
+    --theme-primary-light: #ff7070;
+    --theme-primary-dark: #e64545;
+    --theme-primary-foreground: #ffffff;
     
     /* Base colors for light mode */
     --background: 0 0% 98%;
@@ -21,40 +25,43 @@
     --card-foreground: 0 0% 7%;
     --popover: 0 0% 98%;
     --popover-foreground: 0 0% 7%;
-    --primary-foreground: 0 0% 98%;
+    --primary: var(--theme-primary);
+    --primary-foreground: var(--theme-primary-foreground);
     --secondary: 0 0% 92%;
     --secondary-foreground: 0 0% 7%;
     --muted: 0 0% 90%;
     --muted-foreground: 0 0% 40%;
-    --accent: 210 100% 50%;
-    --accent-foreground: 0 0% 98%;
+    --accent: var(--theme-primary-light);
+    --accent-foreground: var(--theme-primary-foreground);
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 85%;
     --input: 0 0% 85%;
-    --ring: 215 100% 65%;
+    --ring: var(--theme-primary);
     --radius: 0.5rem;
   }
   
   .dark {
+    /* Dark mode colors */
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
     --card: 0 0% 10%;
     --card-foreground: 0 0% 98%;
     --popover: 0 0% 7%;
     --popover-foreground: 0 0% 98%;
-    --primary-foreground: 0 0% 7%;
+    --primary: var(--theme-primary);
+    --primary-foreground: var(--theme-primary-foreground);
     --secondary: 0 0% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
-    --accent: 210 100% 65%;
-    --accent-foreground: 0 0% 7%;
+    --accent: var(--theme-primary-light);
+    --accent-foreground: var(--theme-primary-foreground);
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 215 100% 65%;
+    --ring: var(--theme-primary);
   }
 }
 

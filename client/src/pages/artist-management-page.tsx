@@ -12,8 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Edit, Plus, Trash } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Artist } from "../../../shared/schema";
+import { Artist } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sidebar } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/top-bar";
 
 export default function ArtistManagementPage() {
   const { user } = useAuth();
@@ -172,7 +174,18 @@ export default function ArtistManagementPage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
+    <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <Sidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto pb-32 relative">
+          {/* Top Bar */}
+          <TopBar />
+
+          {/* Page Content */}
+          <div className="container mx-auto py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Artist Management</h1>
         <Button 
@@ -485,6 +498,9 @@ export default function ArtistManagementPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+            </div>
+          </main>
+        </div>
+      </div>
+    );
 }

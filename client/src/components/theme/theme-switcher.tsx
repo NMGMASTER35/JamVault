@@ -75,10 +75,41 @@ export function ThemeSwitcher() {
     }
     
     // Apply primary color to CSS variables
-    document.documentElement.style.setProperty("--primary", themeConfig.primary);
+    document.documentElement.style.setProperty("--theme-primary", themeConfig.primary);
+    
+    // Generate various shades for the theme color
+    const color = themeConfig.primary;
+    document.documentElement.style.setProperty("--theme-primary-light", adjustColorLightness(color, 15));
+    document.documentElement.style.setProperty("--theme-primary-dark", adjustColorLightness(color, -15));
+    document.documentElement.style.setProperty("--theme-primary-foreground", getContrastColor(color));
     
     // Save theme preference
     localStorage.setItem(THEME_KEY, selectedTheme);
+  };
+  
+  // Helper function to adjust color lightness
+  const adjustColorLightness = (hex: string, amount: number): string => {
+    let r = parseInt(hex.slice(1, 3), 16);
+    let g = parseInt(hex.slice(3, 5), 16);
+    let b = parseInt(hex.slice(5, 7), 16);
+    
+    r = Math.max(0, Math.min(255, r + amount));
+    g = Math.max(0, Math.min(255, g + amount));
+    b = Math.max(0, Math.min(255, b + amount));
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  };
+  
+  // Helper function to determine contrasting text color
+  const getContrastColor = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    // Calculate luminance (perceived brightness)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    
+    return luminance > 0.5 ? '#000000' : '#ffffff';
   };
   
   const onThemeChange = (value: string) => {

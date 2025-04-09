@@ -5,9 +5,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Heart, Play, Plus, Music, Disc } from "lucide-react";
-import { Artist, Song, Album } from "../../../shared/schema";
+import { Artist, Song, Album } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
+import { Sidebar } from "@/components/layout/sidebar";
+import { TopBar } from "@/components/layout/top-bar";
 
 export default function ArtistProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -50,8 +52,19 @@ export default function ArtistProfilePage() {
   }
 
   return (
-    <div className="container mx-auto py-8">
-      {isLoading ? (
+    <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
+      <div className="flex h-full">
+        {/* Sidebar */}
+        <Sidebar />
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto pb-32 relative">
+          {/* Top Bar */}
+          <TopBar />
+
+          {/* Page Content */}
+          <div className="container mx-auto py-8">
+            {isLoading ? (
         <div className="flex flex-col gap-8">
           {/* Artist header skeleton */}
           <div className="flex flex-col md:flex-row gap-6">
@@ -236,6 +249,9 @@ export default function ArtistProfilePage() {
           <p className="text-muted-foreground">The artist you're looking for doesn't exist or has been removed.</p>
         </div>
       )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
