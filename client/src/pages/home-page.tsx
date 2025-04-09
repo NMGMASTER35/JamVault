@@ -14,7 +14,7 @@ import { useLocation } from "wouter";
 
 export default function HomePage() {
   const [_, navigate] = useLocation();
-  
+
   // Fetch user's songs
   const { 
     data: songs, 
@@ -55,7 +55,7 @@ export default function HomePage() {
   // Loading state
   const isLoading = isLoadingSongs || isLoadingRecentSongs || isLoadingPlaylists;
   const hasError = songsError || recentSongsError || playlistsError;
-  
+
   return (
     <div className="bg-background text-foreground flex flex-col h-screen overflow-hidden">
       <div className="flex h-full">
@@ -146,7 +146,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Recently Added</h2>
               </div>
-              
+
               {isLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -156,7 +156,7 @@ export default function HomePage() {
                   Error loading songs. Please try again.
                 </div>
               ) : recentSongs && recentSongs.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {recentSongs.slice(0, 6).map((song) => (
                     <SongCard 
                       key={song.id} 
@@ -177,7 +177,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Your Library</h2>
               </div>
-              
+
               {isLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -187,7 +187,7 @@ export default function HomePage() {
                   Error loading songs. Please try again.
                 </div>
               ) : songs && songs.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                   {songs.slice(0, 6).map((song) => (
                     <SongCard 
                       key={song.id} 
@@ -208,7 +208,7 @@ export default function HomePage() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Your Playlists</h2>
               </div>
-              
+
               {isLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
