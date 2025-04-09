@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { Server } from 'socket.io';
+import { createServer } from 'http';
 
 const app = express();
 app.use(express.json());
@@ -37,7 +39,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  const httpServer = createServer(app);
+  const io = new Server(httpServer); // Initialize Socket.IO
+
+  const server = await registerRoutes(app, io); // Pass io to registerRoutes
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -60,11 +65,20 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
+  httpServer.listen({ // Use httpServer instead of server
     port,
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+
+  // Basic Socket.IO setup (requires further implementation)
+  io.on('connection', (socket) => {
+    console.log('a user connected');
+    socket.on('disconnect', () => {
+      console.log('user disconnected');
+    });
+    // Add event listeners for music control commands here
   });
 })();
