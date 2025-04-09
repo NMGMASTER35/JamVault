@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -43,8 +42,8 @@ export default function AlbumManagementPage() {
   });
 
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="flex items-center mb-6">
+    <div className="container mx-auto py-8">
+      <div className="flex justify-between items-center mb-6">
         <Button 
           variant="ghost" 
           onClick={() => navigate('/')}
@@ -52,45 +51,16 @@ export default function AlbumManagementPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-3xl font-bold">Manage Albums</h1>
+        <h1 className="text-3xl font-bold">Album Management</h1>
+        <Button className="flex items-center gap-2" onClick={() => {
+          if (newAlbumName.trim()) {
+            createAlbumMutation.mutate(newAlbumName.trim());
+          }
+        }}>
+          <Plus size={16} /> Add Album
+        </Button>
       </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Create New Album</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form 
-            className="flex gap-4" 
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (newAlbumName.trim()) {
-                createAlbumMutation.mutate(newAlbumName.trim());
-              }
-            }}
-          >
-            <Input
-              value={newAlbumName}
-              onChange={(e) => setNewAlbumName(e.target.value)}
-              placeholder="Album name"
-              className="flex-1"
-            />
-            <Button 
-              type="submit"
-              disabled={createAlbumMutation.isPending || !newAlbumName.trim()}
-            >
-              {createAlbumMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Plus className="h-4 w-4 mr-2" />
-              )}
-              Create Album
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           <Card>
             <CardContent className="p-4">Loading albums...</CardContent>

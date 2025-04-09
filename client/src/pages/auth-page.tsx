@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Music2 } from "lucide-react";
 
 export default function AuthPage() {
@@ -54,8 +54,8 @@ export default function AuthPage() {
     registerMutation.mutate(values);
   };
 
-  // Loading state
-  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  // Loading state - this line is redundant and should be removed.  The isLoading variable is already defined above.
+  //const isLoading = loginMutation.isPending || registerMutation.isPending;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -67,7 +67,7 @@ export default function AuthPage() {
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="login">
               <Card>
                 <CardHeader>
@@ -95,7 +95,7 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={loginForm.control}
                         name="password"
@@ -113,13 +113,13 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={isLoading}
+                        disabled={loginForm.formState.isSubmitting}
                       >
-                        {isLoading ? (
+                        {loginForm.formState.isSubmitting ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
                         Login
@@ -137,7 +137,7 @@ export default function AuthPage() {
                 </CardFooter>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="register">
               <Card>
                 <CardHeader>
@@ -165,7 +165,7 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={registerForm.control}
                         name="displayName"
@@ -182,7 +182,7 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={registerForm.control}
                         name="password"
@@ -200,13 +200,13 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <Button 
                         type="submit" 
                         className="w-full" 
-                        disabled={isLoading}
+                        disabled={registerForm.formState.isSubmitting}
                       >
-                        {isLoading ? (
+                        {registerForm.formState.isSubmitting ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
                         Register
@@ -227,7 +227,7 @@ export default function AuthPage() {
           </Tabs>
         </div>
       </div>
-      
+
       {/* Right column - Hero section */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/80 to-primary/30 items-center justify-center p-8">
         <div className="max-w-md text-white">
@@ -241,14 +241,14 @@ export default function AuthPage() {
             </div>
             <h1 className="text-2xl font-bold ml-3">JamVault</h1>
           </div>
-          
+
           <h2 className="text-3xl font-bold mb-4">Your Personal Vault of Vibes</h2>
           <p className="text-lg mb-6">
             Upload, organize, and enjoy your music collection in one place.
             Create playlists, shuffle your favorites, and take control of your
             listening experience.
           </p>
-          
+
           <div className="space-y-4">
             <div className="flex items-start">
               <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center mr-4">
