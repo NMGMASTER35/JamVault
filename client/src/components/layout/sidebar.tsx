@@ -34,15 +34,20 @@ export function Sidebar() {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
   const [isCreatePlaylistOpen, setIsCreatePlaylistOpen] = useState(false);
-  
+
   // Fetch user's playlists for the sidebar
   const { 
     data: playlists, 
     isLoading: isLoadingPlaylists,
+    error: playlistsError
   } = useQuery<Playlist[]>({
     queryKey: ['/api/playlists'],
+    // Added error handling for playlists
+    onError: (err) => {
+      console.error("Error fetching playlists:", err);
+    }
   });
-  
+
   return (
     <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-background border-r border-border overflow-y-auto">
       {/* App Logo */}
@@ -54,7 +59,7 @@ export function Sidebar() {
         />
         <h1 className="text-xl font-bold gradient-text">JamVault</h1>
       </div>
-      
+
       {/* Main Navigation */}
       <nav className="space-y-1 p-4">
         <Link href="/">
@@ -88,7 +93,7 @@ export function Sidebar() {
           </a>
         </Link>
       </nav>
-      
+
       {/* Your Music Section */}
       <div className="px-4 py-2">
         <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Your Music</h3>
@@ -135,7 +140,7 @@ export function Sidebar() {
           </Link>
         </div>
       </div>
-      
+
       {/* Artists Section */}
       <div className="px-4 py-2 border-t border-border">
         <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Artists</h3>
@@ -150,7 +155,7 @@ export function Sidebar() {
           </Link>
         </div>
       </div>
-      
+
       {/* Features Section */}
       <div className="px-4 py-2 mt-2 border-t border-border">
         <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Features</h3>
@@ -165,7 +170,7 @@ export function Sidebar() {
               <span>Remote Control</span>
             </a>
           </Link>
-          
+
           <Link href="/profile">
             <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
               location === "/profile" 
@@ -176,7 +181,7 @@ export function Sidebar() {
               <span>Your Profile</span>
             </a>
           </Link>
-          
+
           <Link href="/song-request">
             <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
               location === "/song-request" 
@@ -187,7 +192,7 @@ export function Sidebar() {
               <span>Song Requests</span>
             </a>
           </Link>
-          
+
           {user?.isAdmin && (
             <>
               <Link href="/upload">
@@ -214,7 +219,7 @@ export function Sidebar() {
           )}
         </div>
       </div>
-      
+
       {/* Playlists */}
       <div className="mt-2 flex-grow overflow-hidden border-t border-border">
         <div className="px-6 py-3 flex items-center justify-between">
@@ -238,19 +243,25 @@ export function Sidebar() {
               </div>
             ) : playlists && playlists.length > 0 ? (
               playlists.map((playlist) => (
-                <Link href={`/playlist/${playlist.id}`} key={playlist.id}>
-                  <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                <Link 
+                  href={`/playlist/${playlist.id}`}
+                  key={playlist.id}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md ${
                     location === `/playlist/${playlist.id}` 
                       ? "bg-primary text-white font-medium" 
                       : "text-foreground/80 nav-item"
-                  }`}>
-                    <div className="w-8 h-8 bg-card rounded-md flex items-center justify-center card-hover">
-                      <ListMusic className="h-4 w-4 text-primary" />
-                    </div>
-                    <div className="text-sm font-medium truncate max-w-[160px]">{playlist.name}</div>
-                  </a>
+                  }`}
+                >
+                  <div className="w-8 h-8 bg-card rounded-md flex items-center justify-center card-hover">
+                    <ListMusic className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="text-sm font-medium truncate max-w-[160px]">{playlist.name}</div>
                 </Link>
               ))
+            ) : playlistsError ? (
+              <div className="text-center py-4 px-3 text-foreground/50 text-sm">
+                Error loading playlists.
+              </div>
             ) : (
               <div className="text-center py-4 px-3 text-foreground/50 text-sm">
                 No playlists yet
@@ -259,7 +270,7 @@ export function Sidebar() {
           </div>
         </ScrollArea>
       </div>
-      
+
       {/* User Section */}
       <div className="mt-auto p-4 border-t border-border">
         <div className="flex items-center gap-3 p-2">

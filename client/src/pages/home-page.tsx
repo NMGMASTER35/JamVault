@@ -49,6 +49,10 @@ export default function HomePage() {
     error: playlistsError
   } = useQuery<Playlist[]>({
     queryKey: ['/api/playlists'],
+    queryFn: () => fetch('/api/playlists').then(res => {
+      if (!res.ok) throw new Error('Failed to fetch playlists');
+      return res.json();
+    }),
   });
 
   const { playSong, playPlaylist } = useAudio();

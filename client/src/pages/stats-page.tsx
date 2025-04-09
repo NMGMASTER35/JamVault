@@ -116,13 +116,27 @@ export default function StatsPage() {
     alert("Your shareable playlist has been created! You can now share it with your friends.");
   };
 
-  if (isLoading || !stats) {
+  if (isLoading) {
     return (
       <div className="container py-10 max-w-6xl mx-auto px-4 md:px-6">
         <div className="flex items-center justify-center h-[60vh]">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading your listening stats...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats || (!stats.totalTime && !stats.totalPlays)) {
+    return (
+      <div className="container py-10 max-w-6xl mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="flex flex-col items-center text-center">
+            <BarChart3 className="h-12 w-12 text-muted-foreground mb-4" />
+            <h2 className="text-xl font-semibold mb-2">No Listening Data Available</h2>
+            <p className="text-muted-foreground">Start listening to music to see your stats!</p>
           </div>
         </div>
       </div>
