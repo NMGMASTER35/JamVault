@@ -149,7 +149,7 @@ export default function AlbumManagementPage() {
               <label htmlFor="image">Cover Image URL</label>
               <Input
                 id="image"
-                value={album.image}
+                value={albumForm.image}
                 onChange={(e) => setAlbumForm(prev => ({ ...prev, image: e.target.value }))}
               />
             </div>

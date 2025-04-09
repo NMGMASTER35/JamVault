@@ -208,25 +208,27 @@ export function Sidebar() {
                   <span>Upload Music</span>
                 </a>
               </Link>
-              <Link href="/artists/manage">
-                <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+              <Link 
+                href="/artists/manage"
+                className={`flex items-center gap-3 px-3 py-2 rounded-md ${
                   location === "/artists/manage" 
                     ? "bg-primary text-white font-medium" 
                     : "text-foreground/80 nav-item"
-                }`}>
-                  <Mic2 className="h-5 w-5" />
-                  <span>Manage Artists</span>
-                </a>
+                }`}
+              >
+                <Mic2 className="h-5 w-5" />
+                <span>Manage Artists</span>
               </Link>
-              <Link href="/albums/manage">
-                <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+              <Link 
+                href="/albums/manage"
+                className={`flex items-center gap-3 px-3 py-2 rounded-md ${
                   location === "/albums/manage" 
                     ? "bg-primary text-white font-medium" 
                     : "text-foreground/80 nav-item"
-                }`}>
-                  <Disc className="h-5 w-5" />
-                  <span>Manage Albums</span>
-                </a>
+                }`}
+              >
+                <Disc className="h-5 w-5" />
+                <span>Manage Albums</span>
               </Link>
             </>
           )}
