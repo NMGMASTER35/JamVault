@@ -2,72 +2,67 @@
 import { Link, useLocation } from "wouter";
 import { Home, Search, Library, Upload, UserCircle, MessageSquare, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Menubar,
-  MenubarContent,
-  MenubarItem,
-  MenubarMenu,
-  MenubarTrigger,
-} from "@/components/ui/menubar";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 export function MobileNav() {
   const [location] = useLocation();
   const { user } = useAuth();
   
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-2">
-      <Menubar className="w-full bg-background/95 backdrop-blur-sm border-border">
-        <MenubarMenu>
-          <MenubarTrigger className="w-full justify-between">
-            <span className="flex items-center gap-2">
-              <Menu className="h-5 w-5" />
-              <span>Menu</span>
-            </span>
-          </MenubarTrigger>
-          <MenubarContent className="bg-black/95 backdrop-blur-sm border-neutral-800 w-[calc(100vw-2rem)]">
-            <Link href="/">
-              <MenubarItem className={location === "/" ? "bg-primary text-primary-foreground" : ""}>
-                <Home className="h-5 w-5 mr-2" />
-                Home
-              </MenubarItem>
+    <div className="md:hidden fixed top-2 left-2 z-50">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <Menu className="h-5 w-5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-sm border-border">
+          <Link href="/">
+            <DropdownMenuItem className={location === "/" ? "bg-primary/10" : ""}>
+              <Home className="h-5 w-5 mr-2" />
+              Home
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/search">
+            <DropdownMenuItem className={location === "/search" ? "bg-primary/10" : ""}>
+              <Search className="h-5 w-5 mr-2" />
+              Search
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/library">
+            <DropdownMenuItem className={location === "/library" ? "bg-primary/10" : ""}>
+              <Library className="h-5 w-5 mr-2" />
+              Library
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/song-request">
+            <DropdownMenuItem className={location === "/song-request" ? "bg-primary/10" : ""}>
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Requests
+            </DropdownMenuItem>
+          </Link>
+          <Link href="/profile">
+            <DropdownMenuItem className={location === "/profile" ? "bg-primary/10" : ""}>
+              <UserCircle className="h-5 w-5 mr-2" />
+              Profile
+            </DropdownMenuItem>
+          </Link>
+          {user?.isAdmin && (
+            <Link href="/upload">
+              <DropdownMenuItem className={location === "/upload" ? "bg-primary/10" : ""}>
+                <Upload className="h-5 w-5 mr-2" />
+                Upload
+              </DropdownMenuItem>
             </Link>
-            <Link href="/search">
-              <MenubarItem className={location === "/search" ? "bg-primary text-primary-foreground" : ""}>
-                <Search className="h-5 w-5 mr-2" />
-                Search
-              </MenubarItem>
-            </Link>
-            <Link href="/library">
-              <MenubarItem className={location === "/library" ? "bg-primary text-primary-foreground" : ""}>
-                <Library className="h-5 w-5 mr-2" />
-                Library
-              </MenubarItem>
-            </Link>
-            <Link href="/song-request">
-              <MenubarItem className={location === "/song-request" ? "bg-primary text-primary-foreground" : ""}>
-                <MessageSquare className="h-5 w-5 mr-2" />
-                Requests
-              </MenubarItem>
-            </Link>
-            <Link href="/profile">
-              <MenubarItem className={location === "/profile" ? "bg-primary text-primary-foreground" : ""}>
-                <UserCircle className="h-5 w-5 mr-2" />
-                Profile
-              </MenubarItem>
-            </Link>
-            {user?.isAdmin && (
-              <Link href="/upload">
-                <MenubarItem className={location === "/upload" ? "bg-primary text-primary-foreground" : ""}>
-                  <Upload className="h-5 w-5 mr-2" />
-                  Upload
-                </MenubarItem>
-              </Link>
-            )}
-          </MenubarContent>
-        </MenubarMenu>
-      </Menubar>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
