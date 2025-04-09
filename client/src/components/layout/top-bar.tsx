@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useOfflineMode } from "@/hooks/use-offline-mode";
 import { Switch } from "@/components/ui/switch";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,8 @@ import {
   MessageSquare,
   Wifi,
   WifiOff,
+  BarChart,
+  LineChart,
 } from "lucide-react";
 
 export function TopBar() {
@@ -44,16 +47,21 @@ export function TopBar() {
     }
   };
   
+  // Add dark mode class to body on mount
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+  }, []);
+
   return (
-    <div className="sticky top-0 z-10 bg-black/95 backdrop-blur-sm px-4 py-3 border-b border-neutral-800 flex items-center gap-3">
+    <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm px-4 py-3 border-b border-border flex items-center gap-3">
       {/* Mobile menu button */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" size="icon" className="md:hidden text-white hover:bg-neutral-800">
+          <Button variant="ghost" size="icon" className="md:hidden hover:bg-accent/10">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 bg-black border-r border-neutral-800">
+        <SheetContent side="left" className="p-0 bg-background border-r border-border">
           <Sidebar />
         </SheetContent>
       </Sheet>
@@ -97,17 +105,34 @@ export function TopBar() {
         <Input
           type="text"
           placeholder="Search..."
-          className="bg-accent pl-10 pr-4 py-2 text-sm"
+          className="bg-card pl-10 pr-4 py-2 text-sm border border-border"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </form>
+      
+      {/* Stats button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden sm:flex"
+        title="Your Stats"
+        onClick={() => navigate("/stats")}
+      >
+        <BarChart className="h-5 w-5" />
+      </Button>
+      
+      {/* Theme switcher */}
+      <div className="hidden sm:block">
+        <ThemeSwitcher />
+      </div>
       
       {/* Upload button - admin only */}
       {user?.isAdmin && (
         <Button 
           className="hidden sm:flex items-center gap-2"
           onClick={() => navigate("/upload")}
+          variant="outline"
         >
           <Upload className="h-4 w-4" />
           <span>Upload</span>
@@ -116,7 +141,7 @@ export function TopBar() {
       
       {/* Offline mode indicator */}
       {isOffline && (
-        <div className="hidden sm:flex items-center gap-2 ml-3 text-amber-500 bg-amber-950/30 px-3 py-1 rounded-full text-sm">
+        <div className="hidden sm:flex items-center gap-2 ml-1 text-amber-500 bg-amber-950/30 px-3 py-1 rounded-full text-sm">
           <WifiOff className="h-3.5 w-3.5" />
           <span>Offline</span>
         </div>
@@ -129,7 +154,7 @@ export function TopBar() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="rounded-full h-9 w-9 bg-neutral-800 hover:bg-neutral-700"
+              className="rounded-full h-9 w-9 bg-card hover:bg-card/90"
             >
               <UserCircle className="h-5 w-5 text-primary" />
             </Button>
@@ -146,6 +171,10 @@ export function TopBar() {
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 <UserCircle className="mr-2 h-4 w-4" />
                 <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/stats")}>
+                <BarChart className="mr-2 h-4 w-4" />
+                <span>Stats</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/song-request")}>
                 <MessageSquare className="mr-2 h-4 w-4" />
@@ -178,6 +207,11 @@ export function TopBar() {
                   className="ml-2"
                 />
               </div>
+            </DropdownMenuItem>
+            {/* Mobile-only theme switcher */}
+            <DropdownMenuItem className="md:hidden flex items-center justify-between cursor-default">
+              <span>Theme</span>
+              <ThemeSwitcher />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

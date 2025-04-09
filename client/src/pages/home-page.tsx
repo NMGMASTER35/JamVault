@@ -5,10 +5,11 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { FeaturedContent } from "@/components/music/featured-content";
 import { SongCard } from "@/components/music/song-card";
 import { PlaylistCard } from "@/components/music/playlist-card";
+import { WeeklyPlaylists } from "@/components/playlist/weekly-playlists";
 import { useQuery } from "@tanstack/react-query";
 import { Song, Playlist } from "@shared/schema";
 import { useAudio } from "@/lib/audioContext";
-import { Loader2, Clock, ListMusic, UserCircle } from "lucide-react";
+import { Loader2, Clock, ListMusic, UserCircle, SparklesIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 
@@ -72,6 +73,11 @@ export default function HomePage() {
             {/* Featured Content */}
             <FeaturedContent />
 
+            {/* Weekly Playlists */}
+            <div className="mb-8">
+              <WeeklyPlaylists />
+            </div>
+            
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {/* Listening Time Card */}
