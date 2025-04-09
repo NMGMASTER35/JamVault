@@ -27,6 +27,9 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to fetch songs');
       return res.json();
     }),
+    onError: (err) => {
+      console.error("Error fetching songs:", err);
+    }
   });
 
   // Fetch recently added songs
@@ -40,6 +43,9 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to fetch recent songs');
       return res.json();
     }),
+    onError: (err) => {
+      console.error("Error fetching recent songs:", err);
+    }
   });
 
   // Fetch user's playlists
@@ -53,6 +59,9 @@ export default function HomePage() {
       if (!res.ok) throw new Error('Failed to fetch playlists');
       return res.json();
     }),
+    onError: (err) => {
+      console.error("Error fetching playlists:", err);
+    }
   });
 
   const { playSong, playPlaylist } = useAudio();
@@ -81,7 +90,7 @@ export default function HomePage() {
             <div className="mb-8">
               <WeeklyPlaylists />
             </div>
-            
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {/* Listening Time Card */}

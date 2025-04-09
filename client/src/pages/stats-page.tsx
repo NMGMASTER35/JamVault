@@ -224,8 +224,14 @@ export default function StatsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="font-semibold">{topSongs[0]?.title || "No data yet"}</p>
-                <p className="text-sm text-muted-foreground">{topSongs[0]?.artist || ""}</p>
+                {topSongs && topSongs.length > 0 ? (
+                  <>
+                    <p className="font-semibold">{topSongs[0].title}</p>
+                    <p className="text-sm text-muted-foreground">{topSongs[0].artist}</p>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No listening data available yet</p>
+                )}
               </CardContent>
             </Card>
 

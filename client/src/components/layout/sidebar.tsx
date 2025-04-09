@@ -28,6 +28,7 @@ import {
   ListMusic,
   Radio,
   Mic2,
+  Disc,
 } from "lucide-react";
 
 export function Sidebar() {
