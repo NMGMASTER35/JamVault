@@ -17,6 +17,7 @@ import RemoteControlPage from "@/pages/remote-control-page";
 import VisualizerPage from "@/pages/visualizer-page";
 import ArtistManagementPage from "@/pages/artist-management-page";
 import ArtistProfilePage from "@/pages/artist-profile-page";
+import AlbumManagementPage from "@/pages/album-management-page";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AudioProvider } from "@/lib/audioContext";
