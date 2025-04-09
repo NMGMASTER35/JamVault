@@ -39,7 +39,7 @@ function Router() {
       <ProtectedRoute path="/remote-player" component={RemotePlayerPage} />
       <ProtectedRoute path="/remote-control" component={RemoteControlPage} />
       <ProtectedRoute path="/visualizer" component={VisualizerPage} />
-      <ProtectedRoute path="/album-management" component={AlbumManagementPage} />
+      <ProtectedRoute path="/albums/manage" component={AlbumManagementPage} />
       <ProtectedRoute path="/artists/manage" component={ArtistManagementPage} />
       <ProtectedRoute path="/artists/:id" component={ArtistProfilePage} />
       <Route component={NotFound} />
