@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Loader2, UploadCloud, X, Music, CheckCircle, AlertCircle, Image, ImageP
 import { useLocation } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Define validation schema
 const uploadFormSchema = z.object({
@@ -50,7 +51,7 @@ export function UploadForm() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [fileUpload, setFileUpload] = useState<FileUploadState | null>(null);
   const [coverUpload, setCoverUpload] = useState<CoverUploadState | null>(null);
-  
+
   // Initialize form
   const form = useForm<UploadFormValues>({
     resolver: zodResolver(uploadFormSchema),
@@ -62,7 +63,12 @@ export function UploadForm() {
       cover: "",
     },
   });
-  
+
+  // Fetch artists
+  const { data: artists } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ['/api/artists'],
+  });
+
   // Upload mutation
   const uploadMutation = useMutation({
     mutationFn: async (values: UploadFormValues & { file: File }) => {
@@ -71,40 +77,40 @@ export function UploadForm() {
       formData.append('file', values.file);
       formData.append('title', values.title);
       formData.append('artist', values.artist);
-      
+
       if (values.album) {
         formData.append('album', values.album);
       }
-      
+
       formData.append('duration', values.duration.toString());
-      
+
       if (values.cover) {
         formData.append('cover', values.cover);
       }
-      
+
       if (values.genre) {
         formData.append('genre', values.genre);
       }
-      
+
       if (values.year) {
         formData.append('year', values.year.toString());
       }
-      
+
       if (values.lyrics) {
         formData.append('lyrics', values.lyrics);
       }
-      
+
       // Simulate upload progress
       let progress = 0;
       const interval = setInterval(() => {
         progress += 5;
         setFileUpload(prev => prev ? { ...prev, progress: Math.min(progress, 90) } : null);
-        
+
         if (progress >= 90) {
           clearInterval(interval);
         }
       }, 200);
-      
+
       try {
         // Upload the file
         const response = await fetch('/api/songs', {
@@ -112,14 +118,14 @@ export function UploadForm() {
           body: formData,
           credentials: 'include',
         });
-        
+
         clearInterval(interval);
-        
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText || 'Upload failed');
         }
-        
+
         setFileUpload(prev => prev ? { ...prev, progress: 100, status: 'success' } : null);
         return await response.json();
       } catch (error) {
@@ -135,13 +141,13 @@ export function UploadForm() {
     onSuccess: () => {
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['/api/songs'] });
-      
+
       // Show success toast
       toast({
         title: "Upload successful",
         description: "Your song has been uploaded successfully",
       });
-      
+
       // Reset form after a delay
       setTimeout(() => {
         form.reset();
@@ -156,12 +162,12 @@ export function UploadForm() {
       });
     },
   });
-  
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Check if it's an audio file
     if (!file.type.startsWith('audio/')) {
       toast({
@@ -171,7 +177,7 @@ export function UploadForm() {
       });
       return;
     }
-    
+
     // Check file size (max 50MB)
     if (file.size > 50 * 1024 * 1024) {
       toast({
@@ -181,21 +187,21 @@ export function UploadForm() {
       });
       return;
     }
-    
+
     // Extract metadata from filename
     const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
     const parts = fileName.split(' - ');
-    
+
     if (parts.length >= 2) {
       form.setValue('artist', parts[0].trim());
       form.setValue('title', parts[1].trim());
     } else {
       form.setValue('title', fileName);
     }
-    
+
     // Set a dummy duration for now (would normally be extracted)
     form.setValue('duration', 180); // 3 minutes default
-    
+
     // Initialize file upload state
     setFileUpload({
       file,
@@ -203,7 +209,7 @@ export function UploadForm() {
       status: 'idle',
     });
   };
-  
+
   // Handle form submission
   const onSubmit = (values: UploadFormValues) => {
     if (!fileUpload) {
@@ -214,31 +220,31 @@ export function UploadForm() {
       });
       return;
     }
-    
+
     setFileUpload(prev => prev ? { ...prev, status: 'uploading' } : null);
     uploadMutation.mutate({ ...values, file: fileUpload.file });
   };
-  
+
   // Handle drag and drop
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
   };
-  
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    
+
     // Update file input for consistency
     if (fileInputRef.current) {
       // Create a DataTransfer object to set the files
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
       fileInputRef.current.files = dataTransfer.files;
-      
+
       // Manually trigger change event handling
       const event = {
         target: {
@@ -248,14 +254,14 @@ export function UploadForm() {
       handleFileSelect(event);
     }
   };
-  
+
   // Clear file selection
   const clearFileSelection = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     setFileUpload(null);
-    
+
     // Reset form fields related to the file
     form.setValue('title', '');
     form.setValue('artist', '');
@@ -265,12 +271,12 @@ export function UploadForm() {
     form.setValue('year', undefined);
     form.setValue('lyrics', '');
   };
-  
+
   // Handle cover image selection
   const handleCoverSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Check if it's an image file
     if (!file.type.startsWith('image/')) {
       toast({
@@ -280,7 +286,7 @@ export function UploadForm() {
       });
       return;
     }
-    
+
     // Check file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
       toast({
@@ -290,13 +296,13 @@ export function UploadForm() {
       });
       return;
     }
-    
+
     // Create a preview URL
     const preview = URL.createObjectURL(file);
-    
+
     // Set cover upload state
     setCoverUpload({ file, preview });
-    
+
     // Convert the image to base64 for submission
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -305,7 +311,7 @@ export function UploadForm() {
     };
     reader.readAsDataURL(file);
   };
-  
+
   // Clear cover image
   const clearCoverImage = () => {
     if (coverInputRef.current) {
@@ -317,7 +323,7 @@ export function UploadForm() {
     setCoverUpload(null);
     form.setValue('cover', '');
   };
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -327,11 +333,11 @@ export function UploadForm() {
       }
     };
   }, [coverUpload]);
-  
+
   // Render file upload state
   const renderFileUploadState = () => {
     if (!fileUpload) return null;
-    
+
     return (
       <Card className="mb-6">
         <CardContent className="p-4">
@@ -370,14 +376,14 @@ export function UploadForm() {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          
+
           {(fileUpload.status === 'uploading' || fileUpload.status === 'processing') && (
             <Progress 
               value={fileUpload.progress} 
               className="h-1 mt-2"
             />
           )}
-          
+
           {fileUpload.status === 'error' && fileUpload.error && (
             <div className="mt-2 text-xs text-destructive">
               {fileUpload.error}
@@ -387,7 +393,7 @@ export function UploadForm() {
       </Card>
     );
   };
-  
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* File Drop Area */}
@@ -418,7 +424,7 @@ export function UploadForm() {
           <p className="text-xs text-muted-foreground">
             Supported formats: MP3, WAV, FLAC (Max size: 50MB)
           </p>
-          
+
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -428,10 +434,10 @@ export function UploadForm() {
           />
         </div>
       </div>
-      
+
       {/* File Upload Progress */}
       {renderFileUploadState()}
-      
+
       {/* Song Metadata Form */}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -499,7 +505,7 @@ export function UploadForm() {
                 )}
               />
             </div>
-            
+
             <div className="col-span-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -515,7 +521,7 @@ export function UploadForm() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="artist"
@@ -523,13 +529,27 @@ export function UploadForm() {
                     <FormItem>
                       <FormLabel>Artist</FormLabel>
                       <FormControl>
-                        <Input placeholder="Artist name" {...field} />
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select artist" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {artists?.map((artist) => (
+                              <SelectItem key={artist.id} value={artist.name}>
+                                {artist.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="album"
@@ -543,7 +563,7 @@ export function UploadForm() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="duration"
@@ -565,13 +585,13 @@ export function UploadForm() {
               </div>
             </div>
           </div>
-          
+
           <Tabs defaultValue="details" className="w-full">
             <TabsList className="grid grid-cols-2 w-[400px] mb-4">
               <TabsTrigger value="details">Additional Details</TabsTrigger>
               <TabsTrigger value="lyrics">Lyrics</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="details" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -587,7 +607,7 @@ export function UploadForm() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="year"
@@ -608,7 +628,7 @@ export function UploadForm() {
                 />
               </div>
             </TabsContent>
-            
+
             <TabsContent value="lyrics" className="space-y-4">
               <FormField
                 control={form.control}
@@ -629,7 +649,7 @@ export function UploadForm() {
               />
             </TabsContent>
           </Tabs>
-          
+
           <div className="flex justify-end gap-3 pt-4 border-t border-border mt-8">
             <Button 
               type="button" 

@@ -10,9 +10,35 @@ export const OfflineModeContext = createContext<OfflineModeContextType | null>(n
 
 export function OfflineModeProvider({ children }: { children: ReactNode }) {
   const [isOffline, setIsOffline] = useState<boolean>(
-    localStorage.getItem('offlineMode') === 'true'
+    localStorage.getItem('offlineMode') === 'true' || !navigator.onLine
   );
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast({
+        title: "Back Online",
+        description: "Your connection has been restored",
+      });
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast({
+        title: "Offline Mode Enabled",
+        description: "No internet connection detected",
+      });
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [toast]);
 
   useEffect(() => {
     localStorage.setItem('offlineMode', isOffline ? 'true' : 'false');

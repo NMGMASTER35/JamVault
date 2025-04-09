@@ -44,7 +44,7 @@ export function Sidebar() {
   });
   
   return (
-    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-background border-r border-border">
+    <aside className="hidden md:flex md:w-64 lg:w-72 flex-col bg-background border-r border-border overflow-y-auto">
       {/* App Logo */}
       <div className="flex items-center gap-3 p-4">
         <img 

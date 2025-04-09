@@ -21,13 +21,35 @@ export default function SearchPage() {
   const searchParams = new URLSearchParams(location.split('?')[1]);
   const query = searchParams.get('q') || '';
   
+  const { isOffline } = useOfflineMode();
+  const offlineResults = useMemo(() => {
+    if (!isOffline) return null;
+    const stored = localStorage.getItem('offlineData');
+    if (!stored) return null;
+    const data = JSON.parse(stored);
+    return {
+      songs: data.songs?.filter(s => 
+        s.title.toLowerCase().includes(query.toLowerCase()) ||
+        s.artist.toLowerCase().includes(query.toLowerCase())
+      ) || [],
+      artists: data.artists?.filter(a => 
+        a.name.toLowerCase().includes(query.toLowerCase())
+      ) || [],
+      albums: data.albums?.filter(a => 
+        a.name.toLowerCase().includes(query.toLowerCase())
+      ) || []
+    };
+  }, [query, isOffline]);
+
   const { 
     data: results, 
     isLoading
   } = useQuery<SearchResults>({
     queryKey: [`/api/search?q=${query}`],
-    enabled: !!query
+    enabled: !!query && !isOffline
   });
+
+  const displayResults = isOffline ? offlineResults : results;
   
   const { playSong } = useAudio();
   

@@ -41,7 +41,7 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
     addToLibraryMutation, 
     removeFromLibraryMutation 
   } = useLibrary();
-  
+
   // Create a lookup object for quick status checks
   const libraryStatus = useMemo(() => {
     const statusMap: Record<number, boolean> = {};
@@ -52,14 +52,14 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
   }, [librarySongs]);
   const [selectedSong, setSelectedSong] = useState<Song | null>(null);
   const [showAddToPlaylistDialog, setShowAddToPlaylistDialog] = useState(false);
-  
+
   // Format duration
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   // Delete song mutation
   const deleteSongMutation = useMutation({
     mutationFn: async (songId: number) => {
@@ -80,7 +80,7 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
       });
     },
   });
-  
+
   // Remove song from playlist mutation
   const removeSongFromPlaylistMutation = useMutation({
     mutationFn: async ({ playlistId, songId }: { playlistId: number, songId: number }) => {
@@ -103,7 +103,31 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
       });
     },
   });
-  
+
+  const handleDownload = async (song: Song) => {
+    const response = await fetch(`/api/songs/${song.id}/download`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    // Store for offline use
+    const offlineData = JSON.parse(localStorage.getItem('offlineData') || '{"songs":[]}');
+    if (!offlineData.songs.find((s: Song) => s.id === song.id)) {
+      offlineData.songs.push({
+        ...song,
+        offlineUrl: url
+      });
+      localStorage.setItem('offlineData', JSON.stringify(offlineData));
+    }
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = song.title + '.mp3';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full mt-4">
@@ -185,7 +209,7 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                         <Play className="h-4 w-4 mr-2" />
                         Play
                       </DropdownMenuItem>
-                      
+
                       {!playlistId && (
                         <DropdownMenuItem 
                           onClick={() => {
@@ -196,8 +220,8 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                           Add to Playlist
                         </DropdownMenuItem>
                       )}
-                      
-                      <DropdownMenuItem>
+
+                      <DropdownMenuItem onClick={() => handleDownload(song)}>
                         Download
                       </DropdownMenuItem>
 
@@ -232,9 +256,9 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                           />
                         </div>
                       </DropdownMenuItem>
-                      
+
                       <DropdownMenuSeparator />
-                      
+
                       {playlistId && (
                         <DropdownMenuItem 
                           className="text-destructive focus:text-destructive"
@@ -250,7 +274,7 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
                           Remove from Playlist
                         </DropdownMenuItem>
                       )}
-                      
+
                       {isLibraryView && (
                         <DropdownMenuItem 
                           className="text-destructive focus:text-destructive"
@@ -271,7 +295,7 @@ export function SongList({ songs, onPlay, playlistId, isLibraryView = false }: S
           ))}
         </tbody>
       </table>
-      
+
       {/* Add to Playlist Dialog - This would need to be implemented */}
       <Dialog open={showAddToPlaylistDialog} onOpenChange={setShowAddToPlaylistDialog}>
         <DialogContent>
