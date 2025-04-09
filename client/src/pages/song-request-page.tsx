@@ -29,6 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Music2, 
   User, 
@@ -74,9 +75,19 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
-const formSchema = insertSongRequestSchema.extend({
+const formSchema = z.object({
+  requestType: z.enum(['song', 'album']).refine((val) => val === 'song' || val === 'album', {
+    message: 'Please select a request type.',
+  }),
+  title: z.string().min(1, { message: 'Title is required' }),
+  artist: z.string().optional(),
+  album: z.string().optional(),
+  year: z.number().optional().nullable(),
+  cover: z.string().url({ message: 'Invalid cover URL' }).optional(),
+  notes: z.string().optional(),
   userId: z.number().optional(),
 });
+
 
 type FormValues = z.infer<typeof formSchema>;
 
@@ -90,12 +101,12 @@ export default function SongRequestPage() {
   const [isAdminResponseDialogOpen, setIsAdminResponseDialogOpen] = useState(false);
   const [adminStatus, setAdminStatus] = useState<'pending' | 'approved' | 'rejected'>('pending');
   const [adminMessage, setAdminMessage] = useState('');
-  
+
   // Fetch song requests
   const { data: requests = [], isLoading: isLoadingRequests } = useQuery<SongRequest[]>({
     queryKey: ['/api/song-requests'],
   });
-  
+
   // Function to handle admin status update
   const updateRequestStatusMutation = useMutation({
     mutationFn: async ({ id, status, adminMessage }: { id: number, status: string, adminMessage: string }) => {
@@ -122,7 +133,7 @@ export default function SongRequestPage() {
       });
     },
   });
-  
+
   // Function to handle deleting a request
   const deleteRequestMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -148,11 +159,12 @@ export default function SongRequestPage() {
       });
     },
   });
-  
+
   // Request form
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      requestType: 'song',
       title: "",
       artist: "",
       album: "",
@@ -161,7 +173,7 @@ export default function SongRequestPage() {
       notes: "",
     },
   });
-  
+
   const createRequestMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const res = await apiRequest("POST", "/api/song-requests", data);
@@ -178,6 +190,7 @@ export default function SongRequestPage() {
         description: "Your song request has been submitted for review.",
       });
       form.reset({
+        requestType: 'song',
         title: "",
         artist: "",
         album: "",
@@ -194,17 +207,17 @@ export default function SongRequestPage() {
       });
     },
   });
-  
+
   function onSubmit(data: FormValues) {
     createRequestMutation.mutate(data);
   }
-  
+
   function handleDeleteRequest() {
     if (selectedRequest) {
       deleteRequestMutation.mutate(selectedRequest.id);
     }
   }
-  
+
   function handleUpdateRequestStatus() {
     if (selectedRequest) {
       updateRequestStatusMutation.mutate({
@@ -214,7 +227,7 @@ export default function SongRequestPage() {
       });
     }
   }
-  
+
   // Function to get badge color based on status
   function getStatusBadge(status: string) {
     switch (status) {
@@ -228,7 +241,7 @@ export default function SongRequestPage() {
         return <Badge variant="outline">Unknown</Badge>;
     }
   }
-  
+
   return (
     <div className="container py-8">
       <div className="flex items-center mb-6">
@@ -242,7 +255,7 @@ export default function SongRequestPage() {
         </Button>
         <h1 className="text-3xl font-bold gradient-text">Song Requests</h1>
       </div>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <Card>
@@ -311,21 +324,21 @@ export default function SongRequestPage() {
                                         <p>{request.year || "Not specified"}</p>
                                       </div>
                                     </div>
-                                    
+
                                     {request.notes && (
                                       <div>
                                         <h4 className="text-sm font-medium text-neutral-400 mb-1">Notes</h4>
                                         <p className="text-sm">{request.notes}</p>
                                       </div>
                                     )}
-                                    
+
                                     {request.cover && (
                                       <div>
                                         <h4 className="text-sm font-medium text-neutral-400 mb-1">Cover Image URL</h4>
                                         <p className="text-sm break-all">{request.cover}</p>
                                       </div>
                                     )}
-                                    
+
                                     <div>
                                       <h4 className="text-sm font-medium text-neutral-400 mb-1">Status</h4>
                                       <div className="flex items-center gap-2">
@@ -335,7 +348,7 @@ export default function SongRequestPage() {
                                         </span>
                                       </div>
                                     </div>
-                                    
+
                                     {request.adminMessage && (
                                       <div>
                                         <h4 className="text-sm font-medium text-neutral-400 mb-1">Admin Response</h4>
@@ -345,7 +358,7 @@ export default function SongRequestPage() {
                                   </div>
                                 </DialogContent>
                               </Dialog>
-                              
+
                               {/* Admin response dialog */}
                               {user?.isAdmin && (
                                 <Button 
@@ -367,7 +380,7 @@ export default function SongRequestPage() {
                                   )}
                                 </Button>
                               )}
-                              
+
                               {/* Delete request */}
                               <Button 
                                 variant="ghost" 
@@ -390,13 +403,13 @@ export default function SongRequestPage() {
             </CardContent>
           </Card>
         </div>
-        
+
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>Request a Song</CardTitle>
+              <CardTitle>Request a Song or Album</CardTitle>
               <CardDescription>
-                Submit a request for a song to be added to JamVault
+                Submit a request for a song or album to be added to JamVault
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -404,15 +417,37 @@ export default function SongRequestPage() {
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
+                    name="requestType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Request Type</FormLabel>
+                        <FormControl>
+                          <Select {...field}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select request type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="song">Song Request</SelectItem>
+                              <SelectItem value="album">Album Request</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Song Title</FormLabel>
+                        <FormLabel>Title</FormLabel>
                         <FormControl>
                           <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
                             <Music2 className="h-4 w-4 text-neutral-400" />
                             <Input 
-                              placeholder="Enter song title" 
+                              placeholder="Enter title" 
                               className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
                               {...field} 
                             />
@@ -422,13 +457,13 @@ export default function SongRequestPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="artist"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Artist</FormLabel>
+                        <FormLabel>Artist (Optional)</FormLabel>
                         <FormControl>
                           <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
                             <User className="h-4 w-4 text-neutral-400" />
@@ -443,7 +478,7 @@ export default function SongRequestPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="album"
@@ -464,7 +499,7 @@ export default function SongRequestPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
@@ -488,7 +523,7 @@ export default function SongRequestPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="cover"
@@ -510,7 +545,7 @@ export default function SongRequestPage() {
                       )}
                     />
                   </div>
-                  
+
                   <FormField
                     control={form.control}
                     name="notes"
@@ -528,13 +563,13 @@ export default function SongRequestPage() {
                           </div>
                         </FormControl>
                         <FormDescription>
-                          Share any additional details that might help us find and add this song
+                          Share any additional details that might help us find and add this song or album.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <Button 
                     type="submit"
                     className="w-full"
@@ -551,7 +586,7 @@ export default function SongRequestPage() {
           </Card>
         </div>
       </div>
-      
+
       {/* Admin Response Dialog */}
       <Dialog open={isAdminResponseDialogOpen} onOpenChange={setIsAdminResponseDialogOpen}>
         <DialogContent>
@@ -591,7 +626,7 @@ export default function SongRequestPage() {
                 </Button>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <label className="text-sm font-medium">Admin Message</label>
               <Textarea
@@ -618,7 +653,7 @@ export default function SongRequestPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

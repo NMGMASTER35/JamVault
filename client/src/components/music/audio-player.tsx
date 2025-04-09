@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -26,7 +25,7 @@ export function AudioPlayer() {
   const [deviceId] = useState(() => crypto.randomUUID());
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
+
   const {
     currentSong,
     isPlaying,
@@ -65,7 +64,7 @@ export function AudioPlayer() {
     }
 
     const socket = io(window.location.origin);
-    
+
     socket.on('connect', () => {
       socket.emit('register-device', deviceId);
     });
@@ -103,7 +102,7 @@ export function AudioPlayer() {
 
   const handleDownload = () => {
     if (!currentSong) return;
-    
+
     const link = document.createElement('a');
     link.href = `/api/songs/${currentSong.id}/stream`;
     link.download = `${currentSong.title} - ${currentSong.artist}.mp3`;
@@ -133,7 +132,7 @@ export function AudioPlayer() {
               >
                 <Maximize2 className="h-5 w-5" />
               </Button>
-              
+
               {currentSong ? (
                 <>
                   <div className="w-14 h-14 rounded-md bg-accent flex items-center justify-center">
@@ -156,7 +155,7 @@ export function AudioPlayer() {
                 <div className="text-sm text-muted-foreground">No song playing</div>
               )}
             </div>
-            
+
             <div className="flex-1 flex flex-col items-center">
               <div className="flex items-center gap-4">
                 <Button
@@ -165,8 +164,9 @@ export function AudioPlayer() {
                   className={isShuffle ? "text-primary" : "text-muted-foreground hover:text-foreground"}
                   onClick={toggleShuffle}
                   disabled={!currentSong}
+                  title={isShuffle ? "Disable shuffle" : "Enable shuffle"}
                 >
-                  <Shuffle className="h-4 w-4" />
+                  <Shuffle className={`h-4 w-4 ${isShuffle ? "text-primary" : ""}`} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -208,7 +208,7 @@ export function AudioPlayer() {
                   <Repeat className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               <div className="w-full flex items-center gap-2 mt-2">
                 <span className="text-xs text-muted-foreground w-10 text-right">
                   {formatTime(progress)}
@@ -245,7 +245,7 @@ export function AudioPlayer() {
                 </span>
               </div>
             </div>
-            
+
             <div className="w-1/4 min-w-[160px] flex items-center justify-end gap-2">
               <Button
                 variant="ghost"
@@ -257,7 +257,7 @@ export function AudioPlayer() {
               >
                 <FileText className="h-5 w-5" />
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -267,7 +267,7 @@ export function AudioPlayer() {
               >
                 <ListMusic className="h-5 w-5" />
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -278,7 +278,7 @@ export function AudioPlayer() {
               >
                 <BarChart2 className="h-5 w-5" />
               </Button>
-              
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -331,12 +331,12 @@ export function AudioPlayer() {
                 </div>
               )}
             </div>
-            
+
             <div className="text-center">
               <h2 className="text-2xl font-bold">{currentSong?.title}</h2>
               <p className="text-muted-foreground">{currentSong?.artist}</p>
             </div>
-            
+
             {/* Player controls from mini player */}
             <div className="w-full max-w-md">
               <div className="flex items-center justify-center gap-4 mb-6">
@@ -346,8 +346,9 @@ export function AudioPlayer() {
                   className={isShuffle ? "text-primary" : "text-muted-foreground hover:text-foreground"}
                   onClick={toggleShuffle}
                   disabled={!currentSong}
+                  title={isShuffle ? "Disable shuffle" : "Enable shuffle"}
                 >
-                  <Shuffle className="h-5 w-5" />
+                  <Shuffle className={`h-5 w-5 ${isShuffle ? "text-primary" : ""}`} />
                 </Button>
                 <Button
                   variant="ghost"
@@ -389,7 +390,7 @@ export function AudioPlayer() {
                   <Repeat className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               <div className="w-full flex items-center gap-2 mb-4">
                 <span className="text-xs text-muted-foreground w-10 text-right">
                   {formatTime(progress)}
@@ -408,7 +409,7 @@ export function AudioPlayer() {
                   {formatTime(duration || 0)}
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"

@@ -145,13 +145,15 @@ export function Sidebar() {
       <div className="px-4 py-2 border-t border-border">
         <h3 className="text-xs uppercase font-bold tracking-wider ml-2 mb-2 text-foreground/60">Artists</h3>
         <div className="space-y-1">
-          <Link href="/search?type=artists" className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-              location === "/search?type=artists" 
+          <Link href="/search">
+            <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+              location === "/search" 
                 ? "bg-primary text-white font-medium" 
                 : "text-foreground/80 nav-item"
             }`}>
-            <Mic2 className="h-5 w-5" />
-            <span>Browse Artists</span>
+              <Mic2 className="h-5 w-5" />
+              <span>Browse Artists</span>
+            </a>
           </Link>
         </div>
       </div>
@@ -213,6 +215,16 @@ export function Sidebar() {
                 }`}>
                   <Mic2 className="h-5 w-5" />
                   <span>Manage Artists</span>
+                </a>
+              </Link>
+              <Link href="/albums/manage">
+                <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+                  location === "/albums/manage" 
+                    ? "bg-primary text-white font-medium" 
+                    : "text-foreground/80 nav-item"
+                }`}>
+                  <Disc className="h-5 w-5" />
+                  <span>Manage Albums</span>
                 </a>
               </Link>
             </>
