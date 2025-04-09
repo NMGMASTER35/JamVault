@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+const { toast } = useToast();
 import { Loader2, Music2 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function AuthPage() {
@@ -280,7 +281,7 @@ export default function AuthPage() {
           <div className="flex items-center mb-8">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
               <img 
-                src="/attached_assets/jamvault-logo.png" 
+                src="/src/assets/jamvault-logo.png" 
                 alt="JamVault Logo" 
                 className="h-8 w-8 object-contain" 
               />
