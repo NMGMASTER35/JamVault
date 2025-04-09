@@ -80,6 +80,12 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       src: [`/api/songs/${song.id}/stream`],
       html5: true,
       volume: volume,
+      preload: true,
+      xhr: {
+        withCredentials: true
+      },
+      format: ['mp3'],
+      pool: 1,
       onplay: () => {
         setIsPlaying(true);
         startProgressTracking();

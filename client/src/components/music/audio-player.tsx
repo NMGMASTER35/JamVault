@@ -47,6 +47,23 @@ export function AudioPlayer() {
 
   // Socket connection for multi-device control
   useEffect(() => {
+    // Setup Media Session API for background playback controls
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+      navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+      navigator.mediaSession.setActionHandler('previoustrack', () => prevSong());
+      navigator.mediaSession.setActionHandler('nexttrack', () => nextSong());
+    }
+
+    // Update media session metadata when song changes
+    if (currentSong && 'mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentSong.title,
+        artist: currentSong.artist,
+        artwork: currentSong.cover ? [{ src: currentSong.cover }] : undefined
+      });
+    }
+
     const socket = io(window.location.origin);
     
     socket.on('connect', () => {
