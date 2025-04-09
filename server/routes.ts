@@ -35,39 +35,39 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup auth routes (/api/register, /api/login, /api/logout, /api/user)
   setupAuth(app);
-  
+
   // Setup file upload middleware
   const upload = setupUpload();
-  
+
   // Create uploads directory if it doesn't exist
   const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-  
+
   // Song routes
   app.get("/api/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     // Return all songs for everyone
     const songs = await storage.getAllSongs();
     return res.json(songs);
   });
-  
+
   app.get("/api/songs/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
-    
+
     return res.json(song);
   });
-  
+
   app.post("/api/songs", upload.single("file"), async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can upload songs");
     if (!req.file) return res.status(400).send("No file uploaded");
-    
+
     const { 
       title, 
       artist, 
@@ -81,7 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       year, 
       lyrics 
     } = req.body;
-    
+
     // Validate artistId exists if provided
     if (artistId) {
       const artistExists = await storage.getArtist(parseInt(artistId));
@@ -89,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Artist with provided ID does not exist");
       }
     }
-    
+
     // Parse featured artists array if provided
     let parsedFeaturedArtists: number[] = [];
     if (featuredArtists) {
@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         parsedFeaturedArtists = typeof featuredArtists === 'string' 
           ? JSON.parse(featuredArtists) 
           : featuredArtists;
-          
+
         // Validate each featured artist ID exists
         for (const fArtistId of parsedFeaturedArtists) {
           const artistExists = await storage.getArtist(parseInt(fArtistId));
@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send("Invalid featured artists format");
       }
     }
-    
+
     // Import barcode generator (will be used automatically in storage.createSong)
     try {
       const song = await storage.createSong({
@@ -130,21 +130,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lyrics: lyrics || null,
         playCount: 0,
       });
-      
+
       return res.status(201).json(song);
     } catch (error) {
       console.error("Error creating song:", error);
       return res.status(500).send("Failed to create song");
     }
   });
-  
+
   app.delete("/api/songs/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can delete songs");
-    
+
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
-    
+
     // Delete the file
     try {
       if (fs.existsSync(song.filePath)) {
@@ -153,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting file:", error);
     }
-    
+
     const success = await storage.deleteSong(song.id);
     if (success) {
       return res.status(204).send();
@@ -161,108 +161,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Failed to delete song");
     }
   });
-  
+
   // Stream song file
   app.get("/api/songs/:id/stream", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const song = await storage.getSong(parseInt(req.params.id));
     if (!song) return res.status(404).send("Song not found");
-    
+
     if (!fs.existsSync(song.filePath)) {
       return res.status(404).send("File not found");
     }
-    
+
     const stat = fs.statSync(song.filePath);
     const fileSize = stat.size;
     const range = req.headers.range;
-    
+
     if (range) {
       const parts = range.replace(/bytes=/, "").split("-");
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
       const chunksize = (end - start) + 1;
       const file = fs.createReadStream(song.filePath, { start, end });
-      
+
       res.writeHead(206, {
         'Content-Range': `bytes ${start}-${end}/${fileSize}`,
         'Accept-Ranges': 'bytes',
         'Content-Length': chunksize,
         'Content-Type': 'audio/mpeg',
       });
-      
+
       file.pipe(res);
     } else {
       res.writeHead(200, {
         'Content-Length': fileSize,
         'Content-Type': 'audio/mpeg',
       });
-      
+
       fs.createReadStream(song.filePath).pipe(res);
     }
   });
-  
+
   // Playlist routes
   app.get("/api/playlists", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlists = await storage.getPlaylistsByUser(req.user.id);
     return res.json(playlists);
   });
-  
+
   app.get("/api/playlists/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlist = await storage.getPlaylist(parseInt(req.params.id));
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     return res.json(playlist);
   });
-  
+
   app.post("/api/playlists", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const validatedData = insertPlaylistSchema.parse({
         ...req.body,
         userId: req.user.id,
       });
-      
+
       const playlist = await storage.createPlaylist(validatedData);
       return res.status(201).json(playlist);
     } catch (error) {
       return res.status(400).json({ error: "Invalid playlist data" });
     }
   });
-  
+
   app.patch("/api/playlists/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlist = await storage.getPlaylist(parseInt(req.params.id));
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     const updatedPlaylist = await storage.updatePlaylist(playlist.id, req.body);
     return res.json(updatedPlaylist);
   });
-  
+
   app.delete("/api/playlists/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlist = await storage.getPlaylist(parseInt(req.params.id));
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     const success = await storage.deletePlaylist(playlist.id);
     if (success) {
       return res.status(204).send();
@@ -270,63 +270,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Failed to delete playlist");
     }
   });
-  
+
   // Playlist song management
   app.get("/api/playlists/:id/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlist = await storage.getPlaylist(parseInt(req.params.id));
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     const songs = await storage.getPlaylistSongs(playlist.id);
     return res.json(songs);
   });
-  
+
   app.post("/api/playlists/:id/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlistId = parseInt(req.params.id);
     const playlist = await storage.getPlaylist(playlistId);
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     try {
       const validatedData = insertPlaylistSongSchema.parse({
         playlistId: playlistId,
         songId: req.body.songId,
       });
-      
+
       // Validate song exists
       const song = await storage.getSong(validatedData.songId);
       if (!song) return res.status(404).send("Song not found");
-      
+
       const playlistSong = await storage.addSongToPlaylist(validatedData.playlistId, validatedData.songId);
       return res.status(201).json(playlistSong);
     } catch (error) {
       return res.status(400).json({ error: "Invalid data" });
     }
   });
-  
+
   app.delete("/api/playlists/:playlistId/songs/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const playlistId = parseInt(req.params.playlistId);
     const songId = parseInt(req.params.songId);
-    
+
     const playlist = await storage.getPlaylist(playlistId);
     if (!playlist) return res.status(404).send("Playlist not found");
-    
+
     if (playlist.userId !== req.user.id) {
       return res.status(403).send("Forbidden");
     }
-    
+
     const success = await storage.removeSongFromPlaylist(playlistId, songId);
     if (success) {
       return res.status(204).send();
@@ -338,31 +338,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Favorites routes
   app.get("/api/favorites", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const songs = await storage.getFavoritesByUser(req.user.id);
     res.json(songs);
   });
-  
+
   app.post("/api/favorites/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const songId = parseInt(req.params.songId);
-    
+
     // Check if the song exists
     const song = await storage.getSong(songId);
     if (!song) {
       return res.status(404).send("Song not found");
     }
-    
+
     const favorite = await storage.addToFavorites(req.user.id, songId);
     res.status(201).json(favorite);
   });
-  
+
   app.delete("/api/favorites/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const songId = parseInt(req.params.songId);
-    
+
     const result = await storage.removeFromFavorites(req.user.id, songId);
     if (result) {
       res.status(204).send();
@@ -370,12 +370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(404).send("Song not found in favorites");
     }
   });
-  
+
   app.get("/api/favorites/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const songId = parseInt(req.params.songId);
-    
+
     const isFavorite = await storage.isFavorite(req.user.id, songId);
     res.json({ isFavorite });
   });
@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Recently added songs - make sure this endpoint comes AFTER /api/songs/:id handlers
   app.get("/api/songs/recent", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
       const songs = await storage.getRecentlyAddedSongs(limit);
@@ -393,11 +393,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching recent songs");
     }
   });
-  
+
   // User's personal library (just songs they've added to their library)
   app.get("/api/library", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const songs = await storage.getUserLibrary(req.user.id);
       return res.json(songs);
@@ -406,19 +406,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching user library");
     }
   });
-  
+
   // Add a song to user's library
   app.post("/api/library/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const songId = parseInt(req.params.songId);
       const song = await storage.getSong(songId);
-      
+
       if (!song) {
         return res.status(404).send("Song not found");
       }
-      
+
       const libraryEntry = await storage.addToLibrary(req.user.id, songId);
       return res.status(201).json(libraryEntry);
     } catch (error) {
@@ -426,15 +426,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error adding to library");
     }
   });
-  
+
   // Remove a song from user's library
   app.delete("/api/library/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const songId = parseInt(req.params.songId);
       const success = await storage.removeFromLibrary(req.user.id, songId);
-      
+
       if (success) {
         return res.status(204).send();
       } else {
@@ -445,11 +445,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error removing from library");
     }
   });
-  
+
   // Check if a song is in user's library
   app.get("/api/library/:songId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const songId = parseInt(req.params.songId);
       const isInLibrary = await storage.isInLibrary(req.user.id, songId);
@@ -463,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Album routes
   app.get("/api/albums", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const albums = await storage.getAllAlbums();
       return res.json(albums);
@@ -472,28 +472,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching albums");
     }
   });
-  
+
   app.get("/api/albums/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const albumId = parseInt(req.params.id);
       const album = await storage.getAlbum(albumId);
-      
+
       if (!album) {
         return res.status(404).send("Album not found");
       }
-      
+
       return res.json(album);
     } catch (error) {
       console.error("Error fetching album:", error);
       return res.status(500).send("Error fetching album");
     }
   });
-  
+
   app.get("/api/albums/:id/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const albumId = parseInt(req.params.id);
       const songs = await storage.getSongsByAlbum(albumId);
@@ -503,10 +503,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching album songs");
     }
   });
-  
+
   app.get("/api/artists/:id/albums", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const artistId = parseInt(req.params.id);
       const albums = await storage.getAlbumsByArtist(artistId);
@@ -516,11 +516,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching artist albums");
     }
   });
-  
+
   app.post("/api/albums", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can create albums");
-    
+
     try {
       const validatedData = insertAlbumSchema.parse(req.body);
       const album = await storage.createAlbum(validatedData);
@@ -530,19 +530,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid album data" });
     }
   });
-  
+
   app.patch("/api/albums/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can update albums");
-    
+
     try {
       const albumId = parseInt(req.params.id);
       const album = await storage.getAlbum(albumId);
-      
+
       if (!album) {
         return res.status(404).send("Album not found");
       }
-      
+
       const updatedAlbum = await storage.updateAlbum(albumId, req.body);
       return res.json(updatedAlbum);
     } catch (error) {
@@ -550,21 +550,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error updating album");
     }
   });
-  
+
   app.delete("/api/albums/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can delete albums");
-    
+
     try {
       const albumId = parseInt(req.params.id);
       const album = await storage.getAlbum(albumId);
-      
+
       if (!album) {
         return res.status(404).send("Album not found");
       }
-      
+
       const success = await storage.deleteAlbum(albumId);
-      
+
       if (success) {
         return res.status(204).send();
       } else {
@@ -575,11 +575,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error deleting album");
     }
   });
-  
+
   // Artist routes
   app.get("/api/artists", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const artists = await storage.getAllArtists();
       return res.json(artists);
@@ -588,28 +588,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching artists");
     }
   });
-  
+
   app.get("/api/artists/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const artistId = parseInt(req.params.id);
       const artist = await storage.getArtist(artistId);
-      
+
       if (!artist) {
         return res.status(404).send("Artist not found");
       }
-      
+
       return res.json(artist);
     } catch (error) {
       console.error("Error fetching artist:", error);
       return res.status(500).send("Error fetching artist");
     }
   });
-  
+
   app.get("/api/artists/:id/songs", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const artistId = parseInt(req.params.id);
       const songs = await storage.getSongsByArtist(artistId);
@@ -619,11 +619,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Error fetching artist songs");
     }
   });
-  
+
   app.post("/api/artists", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can create artists");
-    
+
     try {
       const validatedData = insertArtistSchema.parse(req.body);
       const artist = await storage.createArtist(validatedData);
@@ -633,19 +633,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ error: "Invalid artist data" });
     }
   });
-  
+
   app.patch("/api/artists/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can update artists");
-    
+
     try {
       const artistId = parseInt(req.params.id);
       const artist = await storage.getArtist(artistId);
-      
+
       if (!artist) {
         return res.status(404).send("Artist not found");
       }
-      
+
       const updatedArtist = await storage.updateArtist(artistId, req.body);
       return res.json(updatedArtist);
     } catch (error) {
@@ -657,21 +657,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User profile routes
   app.get("/api/profile", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const user = await storage.getUser(req.user.id);
     if (!user) return res.status(404).send("User not found");
-    
+
     // Don't send password
     const { password, ...safeUser } = user;
     return res.json(safeUser);
   });
-  
+
   // User listening stats
   app.get("/api/user/stats", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const userId = req.user.id;
-    
+
     try {
       // Fetch user listening statistics from storage
       const stats = await storage.getUserListeningStats(userId);
@@ -684,13 +684,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/profile", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       const validatedData = updateProfileSchema.parse(req.body);
       const user = await storage.getUser(req.user.id);
-      
+
       if (!user) return res.status(404).send("User not found");
-      
+
       // If changing password, verify current password
       if (validatedData.newPassword) {
         // Verify current password is correct
@@ -698,20 +698,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [hashedPassword, salt] = user.password.split('.');
         const hashedBuffer = Buffer.from(hashedPassword, 'hex');
         const suppliedBuffer = (await scryptAsync(validatedData.currentPassword, salt, 64)) as Buffer;
-        
+
         const passwordsMatch = timingSafeEqual(hashedBuffer, suppliedBuffer);
-        
+
         if (!passwordsMatch) {
           return res.status(400).json({ 
             error: "Current password is incorrect",
             field: "currentPassword" 
           });
         }
-        
+
         // Update the password
         await storage.updatePassword(user.id, validatedData.newPassword);
       }
-      
+
       // Update other profile fields
       const updates: any = {};
       if (validatedData.displayName) updates.displayName = validatedData.displayName;
@@ -723,19 +723,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (validatedData.dateOfBirth) updates.dateOfBirth = validatedData.dateOfBirth;
       if (validatedData.favoriteArtists) updates.favoriteArtists = validatedData.favoriteArtists;
       if (validatedData.favoriteSongs) updates.favoriteSongs = validatedData.favoriteSongs;
-      
+
       if (Object.keys(updates).length > 0) {
         await storage.updateUser(user.id, updates);
       }
-      
+
       // Get updated user
       const updatedUser = await storage.getUser(user.id);
       if (!updatedUser) return res.status(404).send("User not found");
-      
+
       // Don't send password
       const { password, ...safeUser } = updatedUser;
       return res.json(safeUser);
-      
+
     } catch (error) {
       return res.status(400).json({ error: "Invalid profile data" });
     }
@@ -745,16 +745,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/password-reset/request", async (req: Request, res: Response) => {
     try {
       const { email } = requestPasswordResetSchema.parse(req.body);
-      
+
       const user = await storage.getUserByEmail(email);
       if (!user) {
         // Don't reveal if user exists or not for security
         return res.status(200).json({ message: "If your email is associated with an account, you will receive a password reset link shortly." });
       }
-      
+
       // Generate reset token
       const token = await storage.createPasswordResetToken(user.id);
-      
+
       // In a real application, send an email with the reset link
       // For demo purposes, just return the token in the response
       return res.status(200).json({ 
@@ -763,7 +763,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // This is for demo purposes only
         token: token
       });
-      
+
     } catch (error) {
       return res.status(400).json({ error: "Invalid email" });
     }
@@ -772,18 +772,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/password-reset/reset", async (req: Request, res: Response) => {
     try {
       const { token, password } = resetPasswordSchema.parse(req.body);
-      
+
       // Validate token
       const user = await storage.validatePasswordResetToken(token);
       if (!user) {
         return res.status(400).json({ error: "Invalid or expired token" });
       }
-      
+
       // Update password
       await storage.updatePassword(user.id, password);
-      
+
       return res.status(200).json({ message: "Password updated successfully" });
-      
+
     } catch (error) {
       return res.status(400).json({ error: "Invalid reset request" });
     }
@@ -792,26 +792,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Song request routes
   app.get("/api/song-requests", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     // If admin, return all requests, otherwise return only user's requests
     const requests = req.user.isAdmin 
       ? await storage.getAllSongRequests()
       : await storage.getSongRequestsByUser(req.user.id);
-      
+
     return res.json(requests);
   });
 
   app.get("/api/song-requests/pending", async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
+    if (!req.isAuthenticated()) return res.status(403).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can view pending song requests");
-    
+
     const requests = await storage.getPendingSongRequests();
     return res.json(requests);
   });
 
   app.post("/api/song-requests", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     try {
       // Check if featured artists is provided
       let featuredArtists = [];
@@ -826,16 +826,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(400).json({ error: "Invalid featured artists format" });
         }
       }
-      
+
       const validatedData = insertSongRequestSchema.parse({
         ...req.body,
         featuredArtists,
-        userId: req.user.id
-      });
-      
+        userId: req.user.id      });
+
       const request = await storage.createSongRequest(validatedData);
       return res.status(201).json(request);
-      
+
     } catch (error) {
       console.error("Error creating song request:", error);
       return res.status(400).json({ error: "Invalid song request data" });
@@ -845,37 +844,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/song-requests/:id/status", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
     if (!req.user.isAdmin) return res.status(403).send("Only administrators can update song request status");
-    
+
     const id = parseInt(req.params.id);
     const { status, adminMessage } = req.body;
-    
+
     if (!['pending', 'approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: "Invalid status" });
     }
-    
+
     const updatedRequest = await storage.updateSongRequestStatus(id, status, adminMessage);
     if (!updatedRequest) {
       return res.status(404).send("Song request not found");
     }
-    
+
     return res.json(updatedRequest);
   });
 
   app.delete("/api/song-requests/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const id = parseInt(req.params.id);
     const request = await storage.getSongRequest(id);
-    
+
     if (!request) {
       return res.status(404).send("Song request not found");
     }
-    
+
     // Only the owner or an admin can delete a request
     if (request.userId !== req.user.id && !req.user.isAdmin) {
       return res.status(403).send("Forbidden");
     }
-    
+
     const success = await storage.deleteSongRequest(id);
     if (success) {
       return res.status(204).send();
@@ -887,16 +886,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Short Link routes
   app.post("/api/shortlinks", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const { targetUrl, type, referenceId } = req.body;
-    
+
     if (!targetUrl) {
       return res.status(400).send("Target URL is required");
     }
-    
+
     // Generate a short unique ID
     const shortId = Math.random().toString(36).substring(2, 8);
-    
+
     try {
       const validatedData = insertShortLinkSchema.parse({
         shortId,
@@ -905,30 +904,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: type || "song",
         referenceId: referenceId || null,
       });
-      
+
       const shortLink = await storage.createShortLink(validatedData);
-      
+
       return res.status(201).json(shortLink);
     } catch (error) {
       console.error("Error creating short link:", error);
       return res.status(500).send("Failed to create short link");
     }
   });
-  
+
   app.get("/api/shortlinks/:shortId", async (req: Request, res: Response) => {
     const shortId = req.params.shortId;
-    
+
     if (!shortId) {
       return res.status(400).send("Short ID is required");
     }
-    
+
     try {
       const shortLink = await storage.getShortLink(shortId);
-      
+
       if (!shortLink) {
         return res.status(404).send("Short link not found");
       }
-      
+
       // If we're just retrieving info, don't increment counter
       return res.json(shortLink);
     } catch (error) {
@@ -936,21 +935,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Failed to fetch short link");
     }
   });
-  
+
   // Redirect endpoint for short links
   app.get("/s/:shortId", async (req: Request, res: Response) => {
     const shortId = req.params.shortId;
-    
+
     try {
       const shortLink = await storage.getShortLink(shortId);
-      
+
       if (!shortLink) {
         return res.status(404).send("Short link not found");
       }
-      
+
       // Increment the click counter
       await storage.incrementShortLinkClicks(shortId);
-      
+
       // Redirect to the target URL
       return res.redirect(shortLink.targetUrl);
     } catch (error) {
@@ -958,15 +957,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(500).send("Failed to process redirect");
     }
   });
-  
+
   app.delete("/api/shortlinks/:id", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     const id = parseInt(req.params.id);
-    
+
     try {
       const success = await storage.deleteShortLink(id);
-      
+
       if (success) {
         return res.status(204).send();
       } else {
@@ -981,17 +980,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Remote control music system via WebSocket
   app.get("/api/remote-control/info", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) return res.status(401).send("Unauthorized");
-    
+
     // Return the necessary info to connect to this server remotely
     // This includes the server IP, a temporary token, and user info
     const token = Math.random().toString(36).substring(2, 15);
-    
+
     // Store the token for verification when WebSocket connects
     // In a real system, you'd store this in Redis or a proper session store with expiry
     if (!global.__remote_tokens) {
       global.__remote_tokens = {};
     }
-    
+
     global.__remote_tokens[token] = {
       userId: req.user.id,
       username: req.user.username,
@@ -1010,40 +1009,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create HTTP server
   const httpServer = createServer(app);
-  
+
   // Set up WebSocket server for remote control
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
-  
+
   // Connected playback devices that can be controlled
   const connectedDevices = new Map();
-  
+
   // Connected remote controllers
   const remoteControllers = new Map();
 
   // Set of active user sessions
   const userSessions = new Map();
-  
+
   wss.on('connection', (ws, req) => {
     console.log('WebSocket client connected');
-    
+
     // Initialize connection state
     let userId = null;
     let deviceId = null;
     let isController = false;
     let isPlayer = false;
     let token = null;
-    
+
     // Handle messages
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
-        
+
         // Handle authentication
         if (data.type === 'auth') {
           // Validate the token
           if (data.token && global.__remote_tokens && global.__remote_tokens[data.token]) {
             const tokenData = global.__remote_tokens[data.token];
-            
+
             // Check if token is expired
             if (tokenData.expires < Date.now()) {
               ws.send(JSON.stringify({
@@ -1052,10 +1051,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }));
               return;
             }
-            
+
             userId = tokenData.userId;
             token = data.token;
-            
+
             // Check if this is a playback device or a controller
             if (data.deviceType === 'player') {
               isPlayer = true;
@@ -1069,7 +1068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 volume: 100,
                 timestamp: Date.now()
               });
-              
+
               // Add this device to user's session
               if (!userSessions.has(userId)) {
                 userSessions.set(userId, { 
@@ -1078,14 +1077,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
               }
               userSessions.get(userId).players.add(deviceId);
-              
+
               // Send confirmation
               ws.send(JSON.stringify({
                 type: 'auth_success',
                 deviceId,
                 message: 'Player registered successfully'
               }));
-              
+
               // Notify all controllers for this user about the new player
               broadcastToUserControllers(userId, {
                 type: 'player_connected',
@@ -1102,7 +1101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 name: data.deviceName || 'Remote Control',
                 timestamp: Date.now()
               });
-              
+
               // Add this controller to user's session
               if (!userSessions.has(userId)) {
                 userSessions.set(userId, { 
@@ -1111,14 +1110,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 });
               }
               userSessions.get(userId).controllers.add(deviceId);
-              
+
               // Send confirmation
               ws.send(JSON.stringify({
                 type: 'auth_success',
                 deviceId,
                 message: 'Controller registered successfully'
               }));
-              
+
               // Send list of available players to the controller
               const availablePlayers = [];
               if (userSessions.has(userId)) {
@@ -1135,7 +1134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
                 }
               }
-              
+
               ws.send(JSON.stringify({
                 type: 'available_players',
                 players: availablePlayers
@@ -1172,7 +1171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             device.currentSong = data.currentSong || device.currentSong;
             device.isPlaying = data.isPlaying !== undefined ? data.isPlaying : device.isPlaying;
             device.volume = data.volume !== undefined ? data.volume : device.volume;
-            
+
             // Broadcast the status update to all controllers for this user
             broadcastToUserControllers(userId, {
               type: 'player_status',
@@ -1188,17 +1187,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Error processing WebSocket message:', err);
       }
     });
-    
+
     // Handle disconnection
     ws.on('close', () => {
       if (isPlayer && deviceId) {
         // Remove from connected devices
         connectedDevices.delete(deviceId);
-        
+
         // Remove from user session
         if (userId && userSessions.has(userId)) {
           userSessions.get(userId).players.delete(deviceId);
-          
+
           // Notify controllers
           broadcastToUserControllers(userId, {
             type: 'player_disconnected',
@@ -1209,21 +1208,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else if (isController && deviceId) {
         // Remove from controllers
         remoteControllers.delete(deviceId);
-        
+
         // Remove from user session
         if (userId && userSessions.has(userId)) {
           userSessions.get(userId).controllers.delete(deviceId);
         }
       }
-      
+
       // Cleanup token if it was the last connection using it
       if (token && userId) {
         let otherConnections = false;
-        
+
         // Check if there are other connections using this token
         if (userSessions.has(userId)) {
           const userSession = userSessions.get(userId);
-          
+
           // Check each player
           for (const playerId of userSession.players) {
             const device = connectedDevices.get(playerId);
@@ -1232,7 +1231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               break;
             }
           }
-          
+
           // Check each controller
           if (!otherConnections) {
             for (const controllerId of userSession.controllers) {
@@ -1244,7 +1243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-        
+
         // Remove token if no other connections are using it
         if (!otherConnections && global.__remote_tokens && global.__remote_tokens[token]) {
           delete global.__remote_tokens[token];
@@ -1252,7 +1251,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
   });
-  
+
   // Helper function to broadcast to all controllers for a specific user
   function broadcastToUserControllers(userId, message) {
     if (userSessions.has(userId)) {
@@ -1264,6 +1263,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   }
-  
+
+  app.get('/api/search', async (req, res) => {
+    try {
+      const query = (req.query.q as string || '').toLowerCase();
+      if (!query) return res.json({ songs: [], artists: [], albums: [] });
+
+      const songs = await storage.searchSongs(query);
+      const artists = await storage.searchArtists(query);
+      const albums = await storage.searchAlbums(query);
+
+      res.json({ songs, artists, albums });
+    } catch (error) {
+      res.status(500).json({ error: 'Search failed' });
+    }
+  });
+
   return httpServer;
 }

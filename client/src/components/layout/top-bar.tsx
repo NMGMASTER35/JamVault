@@ -42,7 +42,7 @@ export function TopBar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      navigate("/search");
+      navigate(`/search?q=${encodeURIComponent(searchTerm.trim())}`);
     }
   };
 
