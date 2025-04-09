@@ -71,25 +71,27 @@ export function Sidebar() {
           <Home className="h-5 w-5" />
           <span>Home</span>
         </Link>
-        <Link href="/search">
-          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+        <Link 
+          href="/search"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md ${
             location === "/search" 
               ? "bg-primary text-white font-medium" 
               : "text-foreground/80 nav-item"
-          }`}>
-            <Search className="h-5 w-5" />
-            <span>Search</span>
-          </a>
+          }`}
+        >
+          <Search className="h-5 w-5" />
+          <span>Search</span>
         </Link>
-        <Link href="/library">
-          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+        <Link 
+          href="/library"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md ${
             location === "/library" 
               ? "bg-primary text-white font-medium" 
               : "text-foreground/80 nav-item"
-          }`}>
-            <Library className="h-5 w-5" />
-            <span>Your Library</span>
-          </a>
+          }`}
+        >
+          <Library className="h-5 w-5" />
+          <span>Your Library</span>
         </Link>
       </nav>
 
