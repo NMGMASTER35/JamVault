@@ -19,10 +19,10 @@ export default function AuthPage() {
 
   // Redirect if user is already authenticated
   useEffect(() => {
-    if (user) {
+    if (user && !isLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
 
   // Login form
   const loginForm = useForm<z.infer<typeof loginSchema>>({

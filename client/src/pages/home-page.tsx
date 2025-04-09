@@ -201,6 +201,10 @@ export default function HomePage() {
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
+              ) : songs?.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No songs available. Try uploading some music!
+                </div>
               ) : hasError ? (
                 <div className="p-4 text-center text-destructive">
                   Error loading songs. Please try again.
