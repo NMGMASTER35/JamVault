@@ -311,20 +311,56 @@ export default function ProfilePage() {
                     name="profileImage"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Profile Image URL</FormLabel>
+                        <FormLabel>Profile Image</FormLabel>
                         <FormControl>
-                          <div className="flex items-center border rounded-md pl-3 focus-within:ring-1 focus-within:ring-primary">
-                            <UserIcon className="h-4 w-4 text-neutral-400" />
-                            <Input 
-                              placeholder="https://example.com/your-image.jpg" 
-                              className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                              {...field} 
-                            />
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-4">
+                              {field.value && (
+                                <img 
+                                  src={field.value} 
+                                  alt="Profile preview" 
+                                  className="w-16 h-16 rounded-full object-cover"
+                                />
+                              )}
+                              <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    
+                                    try {
+                                      const res = await fetch('/api/upload/profile', {
+                                        method: 'POST',
+                                        body: formData,
+                                      });
+                                      
+                                      if (!res.ok) throw new Error('Upload failed');
+                                      
+                                      const { url } = await res.json();
+                                      field.onChange(url);
+                                    } catch (error) {
+                                      toast({
+                                        title: "Upload failed",
+                                        description: "Failed to upload profile image",
+                                        variant: "destructive"
+                                      });
+                                    }
+                                  }
+                                }}
+                              />
+                            </div>
+                            {field.value && (
+                              <Input 
+                                value={field.value}
+                                readOnly
+                                className="text-sm text-muted-foreground"
+                              />
+                            )}
                           </div>
                         </FormControl>
-                        <FormDescription>
-                          Enter a URL to your profile image
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
