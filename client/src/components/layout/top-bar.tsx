@@ -7,7 +7,6 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useOfflineMode } from "@/hooks/use-offline-mode";
 import { Switch } from "@/components/ui/switch";
-import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,14 +38,14 @@ export function TopBar() {
   const [searchTerm, setSearchTerm] = useState("");
   const { user, logoutMutation } = useAuth();
   const { isOffline, setOfflineMode } = useOfflineMode();
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       navigate("/search");
     }
   };
-  
+
   // Add dark mode class to body on mount
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -65,7 +64,7 @@ export function TopBar() {
           <Sidebar />
         </SheetContent>
       </Sheet>
-      
+
       {/* App Logo for mobile */}
       <div className="md:hidden flex items-center gap-2">
         <img 
@@ -75,7 +74,7 @@ export function TopBar() {
         />
         <h1 className="text-lg font-bold gradient-text">JamVault</h1>
       </div>
-      
+
       {/* Navigation buttons */}
       <div className="hidden sm:flex gap-2">
         <Button
@@ -95,7 +94,7 @@ export function TopBar() {
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
-      
+
       {/* Search */}
       <form 
         className="relative flex-grow max-w-md"
@@ -110,7 +109,7 @@ export function TopBar() {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </form>
-      
+
       {/* Stats button */}
       <Button
         variant="ghost"
@@ -121,12 +120,8 @@ export function TopBar() {
       >
         <BarChart className="h-5 w-5" />
       </Button>
-      
-      {/* Theme switcher */}
-      <div className="hidden sm:block">
-        <ThemeSwitcher />
-      </div>
-      
+
+
       {/* Upload button - admin only */}
       {user?.isAdmin && (
         <Button 
@@ -138,7 +133,7 @@ export function TopBar() {
           <span>Upload</span>
         </Button>
       )}
-      
+
       {/* Offline mode indicator */}
       {isOffline && (
         <div className="hidden sm:flex items-center gap-2 ml-1 text-amber-500 bg-amber-950/30 px-3 py-1 rounded-full text-sm">
@@ -146,7 +141,7 @@ export function TopBar() {
           <span>Offline</span>
         </div>
       )}
-      
+
       {/* User menu */}
       <div className="ml-auto">
         <DropdownMenu>
@@ -207,11 +202,6 @@ export function TopBar() {
                   className="ml-2"
                 />
               </div>
-            </DropdownMenuItem>
-            {/* Mobile-only theme switcher */}
-            <DropdownMenuItem className="md:hidden flex items-center justify-between cursor-default">
-              <span>Theme</span>
-              <ThemeSwitcher />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

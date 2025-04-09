@@ -12,62 +12,32 @@
   }
 
   :root {
-    /* Theme variables that will be dynamically set */
-    --theme-primary: #ff5555;
-    --theme-primary-light: #ff7070;
-    --theme-primary-dark: #e64545;
-    --theme-primary-foreground: #ffffff;
-
-    /* Base colors for light mode */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 0%;
-    --card: 0 0% 95%;
-    --card-foreground: 0 0% 0%;
-    --popover: 0 0% 98%;
-    --popover-foreground: 0 0% 0%;
-    --primary: var(--theme-primary);
-    --primary-foreground: var(--theme-primary-foreground);
-    --secondary: 0 0% 92%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 25%;
-    --accent: var(--theme-primary-light);
-    --accent-foreground: var(--theme-primary-foreground);
-    --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 85%;
-    --input: 0 0% 85%;
-    --ring: var(--theme-primary);
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    /* Dark mode colors */
-    --background: 0 0% 7%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 98%;
-    --primary: var(--theme-primary);
-    --primary-foreground: var(--theme-primary-foreground);
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 3%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 3%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 100% 50%;
+    --secondary-foreground: 0 0% 100%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 65%;
-    --accent: var(--theme-primary-light);
-    --accent-foreground: var(--theme-primary-foreground);
+    --accent: 220 100% 50%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 50%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: var(--theme-primary);
+    --ring: 0 100% 50%;
+    --radius: 0.5rem;
   }
 }
 
 @layer components {
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+    @apply text-primary;
   }
 
   .nav-item {
@@ -90,28 +60,26 @@
     @apply p-6 rounded-lg bg-card shadow-sm border border-border;
   }
 
-  /* Theme specific utility classes */
   .bg-glass {
     @apply bg-background/80 backdrop-blur-sm border border-border;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-accent;
+    @apply text-primary;
   }
 
   .bg-gradient-subtle {
-    @apply bg-gradient-to-br from-background via-background to-muted/30;
+    @apply bg-background;
   }
 
   .card-gradient {
-    @apply bg-gradient-to-br from-card via-card to-muted/50;
+    @apply bg-card;
   }
 
   .card-highlight {
     @apply border border-primary/20 shadow-sm shadow-primary/10 hover:shadow-md hover:shadow-primary/20 transition-shadow;
   }
 
-  /* Enhanced player styling */
   .player-controls {
     @apply flex items-center justify-center gap-2 md:gap-4;
   }
@@ -132,7 +100,6 @@
     @apply absolute rounded-full h-3 w-3 -mt-[5px] bg-primary shadow-sm opacity-0 group-hover:opacity-100 transition-opacity;
   }
 
-  /* Playlist styles */
   .playlist-card {
     @apply relative overflow-hidden rounded-xl border border-border bg-card transition-all hover:-translate-y-1 hover:shadow-md hover:shadow-primary/10 group;
   }
@@ -145,7 +112,6 @@
     @apply absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4;
   }
 
-  /* Weekly playlists specific styles */
   .weekly-playlist-badge {
     @apply absolute top-3 right-3 text-xs font-medium py-1 px-2 rounded-full bg-primary/90 text-primary-foreground;
   }
