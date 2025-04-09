@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "wouter";
-import { Home, Search, Library, Upload, UserCircle, MessageSquare, Menu } from "lucide-react";
+import { Home, Search, Library, Upload, UserCircle, MessageSquare, Menu, Disc as AlbumIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import {
   DropdownMenu,
@@ -23,12 +23,12 @@ export function MobileNav() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56 bg-background/95 backdrop-blur-sm">
-          <Link href="/">
-            <DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/">
               <Home className="h-5 w-5 mr-2" />
               Home
-            </DropdownMenuItem>
-          </Link>
+            </Link>
+          </DropdownMenuItem>
           <Link href="/search">
             <DropdownMenuItem>
               <Search className="h-5 w-5 mr-2" />

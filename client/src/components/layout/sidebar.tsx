@@ -63,15 +63,13 @@ export function Sidebar() {
 
       {/* Main Navigation */}
       <nav className="space-y-1 p-4">
-        <Link href="/">
-          <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
-            location === "/" 
-              ? "bg-primary text-white font-medium" 
-              : "text-foreground/80 nav-item"
-          }`}>
-            <Home className="h-5 w-5" />
-            <span>Home</span>
-          </a>
+        <Link href="/" className={`flex items-center gap-3 px-3 py-2 rounded-md ${
+          location === "/" 
+            ? "bg-primary text-white font-medium" 
+            : "text-foreground/80 nav-item"
+        }`}>
+          <Home className="h-5 w-5" />
+          <span>Home</span>
         </Link>
         <Link href="/search">
           <a className={`flex items-center gap-3 px-3 py-2 rounded-md ${
