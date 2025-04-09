@@ -14,7 +14,7 @@ import { Loader2, Music2 } from "lucide-react";
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, isLoading } = useAuth();
   const [_, navigate] = useLocation();
 
   // Redirect if user is already authenticated
@@ -53,8 +53,7 @@ export default function AuthPage() {
     registerMutation.mutate(values);
   };
 
-  // Loading state - this line is redundant and should be removed.  The isLoading variable is already defined above.
-  //const isLoading = loginMutation.isPending || registerMutation.isPending;
+  
 
   return (
     <div className="flex min-h-screen bg-background">
